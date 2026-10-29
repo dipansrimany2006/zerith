@@ -1,0 +1,40 @@
+{
+  "contractAddress": "0x621aed2e8b983736795acb5dc87d9cae07d1a0d8",
+  "network": "ARC-TESTNET",
+  "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
+  "contract_code_path": "/home/user/app/contracts/PoseidonT3.sol",
+  "contract_compiled_code_path": "/home/user/app/contracts/out/PoseidonT3.sol/PoseidonT3.json",
+  "contract_network_and_links": {
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0x621aed2e8b983736795acb5dc87d9cae07d1a0d8"
+  },
+  "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0x621aed2e8b983736795acb5dc87d9cae07d1a0d8",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0x621aed2e8b983736795acb5dc87d9cae07d1a0d8",
+      "txHash": "0x62c1371ad7eb010dad2bd32489f788c5c1a93ba7e40ba94afbc1e6a4653662ab",
+      "deployedAt": "2026-10-29T23:04:02.843Z"
+    }
+  ],
+  "abi": [
+    {
+      "type": "function",
+      "name": "hash",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256[2]",
+          "internalType": "uint256[2]"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "pure"
+    }
+  ]
+}

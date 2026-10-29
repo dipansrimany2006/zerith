@@ -1,0 +1,55 @@
+{
+  "contractAddress": "0x90176135a31f01bee989a679f9374137a521edc7",
+  "network": "ARC-TESTNET",
+  "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
+  "contract_code_path": "/home/user/app/contracts/Groth16Verifier.sol",
+  "contract_compiled_code_path": "/home/user/app/contracts/out/Verifier.sol/Groth16Verifier.json",
+  "contract_network_and_links": {
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0x90176135a31f01bee989a679f9374137a521edc7"
+  },
+  "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0x90176135a31f01bee989a679f9374137a521edc7",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0x90176135a31f01bee989a679f9374137a521edc7",
+      "txHash": "0xf53cdc90cf1ce45b6cd728f5430a486e7b2d2b4ae21b594b6ff5ab62d434eacd",
+      "deployedAt": "2026-10-29T23:04:06.892Z"
+    }
+  ],
+  "abi": [
+    {
+      "type": "function",
+      "name": "verifyProof",
+      "inputs": [
+        {
+          "name": "_pA",
+          "type": "uint256[2]",
+          "internalType": "uint256[2]"
+        },
+        {
+          "name": "_pB",
+          "type": "uint256[2][2]",
+          "internalType": "uint256[2][2]"
+        },
+        {
+          "name": "_pC",
+          "type": "uint256[2]",
+          "internalType": "uint256[2]"
+        },
+        {
+          "name": "_pubSignals",
+          "type": "uint256[5]",
+          "internalType": "uint256[5]"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    }
+  ]
+}
