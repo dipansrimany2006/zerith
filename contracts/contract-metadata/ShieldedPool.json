@@ -1,13 +1,20 @@
 {
-  "contractAddress": "0xfb73fe8487910611af9039bf0b72eba0a15770b5",
+  "contractAddress": "0x213ec5ddc7aa24100ddfcc96787d4d3556431b18",
   "network": "ARC-TESTNET",
   "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
   "contract_code_path": "/home/user/app/contracts/ShieldedPool.sol",
   "contract_compiled_code_path": "/home/user/app/contracts/out/ShieldedPool.sol/ShieldedPool.json",
   "contract_network_and_links": {
-    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xfb73fe8487910611af9039bf0b72eba0a15770b5"
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0x213ec5ddc7aa24100ddfcc96787d4d3556431b18"
   },
   "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0x213ec5ddc7aa24100ddfcc96787d4d3556431b18",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0x213ec5ddc7aa24100ddfcc96787d4d3556431b18",
+      "txHash": "0xf954e49e0f403ee626684b60666e378f2a4531f5a003f3bff192bca86e264565",
+      "deployedAt": "2026-10-30T17:12:35.025Z"
+    },
     {
       "chain": "Arc Testnet",
       "address": "0xfb73fe8487910611af9039bf0b72eba0a15770b5",
@@ -64,6 +71,19 @@
     {
       "type": "function",
       "name": "LEVELS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "MAX_BATCH",
       "inputs": [],
       "outputs": [
         {
@@ -181,6 +201,34 @@
           "name": "ciphertext",
           "type": "bytes",
           "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "depositMany",
+      "inputs": [
+        {
+          "name": "denomIndices",
+          "type": "uint8[]",
+          "internalType": "uint8[]"
+        },
+        {
+          "name": "commitments",
+          "type": "bytes32[]",
+          "internalType": "bytes32[]"
+        },
+        {
+          "name": "ephemeralPubs",
+          "type": "bytes32[]",
+          "internalType": "bytes32[]"
+        },
+        {
+          "name": "ciphertexts",
+          "type": "bytes[]",
+          "internalType": "bytes[]"
         }
       ],
       "outputs": [],
@@ -654,6 +702,11 @@
     {
       "type": "error",
       "name": "IncorrectDepositAmount",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidBatch",
       "inputs": []
     },
     {

@@ -9,7 +9,7 @@ Testnet only and unaudited. The proof setup is for development, so do not use re
 ## What you can do
 
 - Create a Zerith address from your wallet (one signature, no transaction).
-- Send USDC to someone's Zerith address, with an optional private memo. Amounts are made of fixed note sizes (0.10, 1 and 10 USDC).
+- Send USDC to someone's Zerith address, with an optional private memo. Amounts are made of fixed note sizes (0.10, 1, 10, 100 and 1,000 USDC). Large payments are sent in batches of up to 10 notes per transaction.
 - See payments sent to you and withdraw them to any address, with or without a relayer paying the gas.
 - Share a viewing key or a signed payment report with an auditor, and check a report someone gives you.
 - See how large the pool is for each note size.

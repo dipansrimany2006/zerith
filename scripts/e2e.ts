@@ -4,7 +4,7 @@
  * Needs: the relayer running (bun run relayer), and E2E_SENDER_KEY funded with testnet USDC.
  * Usage: E2E_SENDER_KEY=0x... bun run scripts/e2e.ts
  */
-import { createPublicClient, createWalletClient, erc20Abi, http } from 'viem'
+import { bytesToHex, createPublicClient, createWalletClient, erc20Abi, http } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { arcTestnet } from 'viem/chains'
 import { POOL_ADDRESS, USDC_ADDRESS, poolAbi } from '../src/lib/pool'
@@ -34,22 +34,28 @@ const destination = privateKeyToAccount(generatePrivateKey()).address // fresh, 
 const denominations = await client.readContract({ address: POOL_ADDRESS, abi: poolAbi, functionName: 'getDenominations' })
 const denomIndex = 0
 const amount = denominations[denomIndex]
-console.log('denominations:', denominations.map(String).join(', '), '| using index', denomIndex, '=', amount.toString())
+console.log('denominations:', denominations.map(String).join(', '), '| withdrawing index', denomIndex, '=', amount.toString())
 
-step('Sender approves and deposits a note addressed to the recipient')
+step('Sender approves and deposits TWO notes (0.10 and 1 USDC) in ONE depositMany transaction')
 const decoded = decodeAddress(recipientKeys.address)
 if (!decoded) throw new Error('bad address')
-const note = createNote(decoded, senderKeys.viewPub, 'e2e test payment')
-const approveHash = await wallet.writeContract({ address: USDC_ADDRESS, abi: erc20Abi, functionName: 'approve', args: [POOL_ADDRESS, amount] })
+const batchIndexes = [0, 1]
+const total = batchIndexes.reduce((sum, i) => sum + denominations[i], 0n)
+const batchNotes = batchIndexes.map(() => createNote(decoded, senderKeys.viewPub, 'e2e test payment'))
+const note = batchNotes[0]
+const approveHash = await wallet.writeContract({ address: USDC_ADDRESS, abi: erc20Abi, functionName: 'approve', args: [POOL_ADDRESS, total] })
 await client.waitForTransactionReceipt({ hash: approveHash })
+const hex = (b: Uint8Array) => `0x${Buffer.from(b).toString('hex')}`
+const poolBefore = await balanceOf(POOL_ADDRESS)
 const depositHash = await wallet.writeContract({
   address: POOL_ADDRESS,
   abi: poolAbi,
-  functionName: 'deposit',
-  args: [denomIndex, toBytes32Hex(note.commitment), `0x${Buffer.from(note.ephemeralPub).toString('hex')}`, `0x${Buffer.from(note.ciphertext).toString('hex')}`],
+  functionName: 'depositMany',
+  args: [batchIndexes, batchNotes.map((n) => toBytes32Hex(n.commitment)), batchNotes.map((n) => bytesToHex(n.ephemeralPub)), batchNotes.map((n) => bytesToHex(n.ciphertext))],
 })
 const depositReceipt = await client.waitForTransactionReceipt({ hash: depositHash })
-console.log('deposit status:', depositReceipt.status, 'gas used:', depositReceipt.gasUsed.toString())
+console.log('depositMany status:', depositReceipt.status, 'gas used:', depositReceipt.gasUsed.toString())
+console.log('pool received:', ((await balanceOf(POOL_ADDRESS)) - poolBefore).toString(), '(expected', total.toString() + ')')
 
 step('Recipient scans the pool and finds the note')
 const logs = await fetchDeposits(client)

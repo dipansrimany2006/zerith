@@ -17,8 +17,12 @@ export const USDC_ADDRESS = usdcFact.address as Address
 
 export const TREE_LEVELS = 20
 
+/** Notes the pool accepts in one depositMany call (matches ShieldedPool.MAX_BATCH). */
+export const MAX_BATCH = 10
+
 export const poolAbi = parseAbi([
   'function deposit(uint8 denomIndex, bytes32 commitment, bytes32 ephemeralPub, bytes ciphertext)',
+  'function depositMany(uint8[] denomIndices, bytes32[] commitments, bytes32[] ephemeralPubs, bytes[] ciphertexts)',
   'function withdraw(uint8 denomIndex, uint256[2] a, uint256[2][2] b, uint256[2] c, bytes32 root, bytes32 nullifierHash, address recipient, address relayer, uint256 fee)',
   'function getDenominations() view returns (uint256[])',
   'function getZeros() view returns (uint256[21])',

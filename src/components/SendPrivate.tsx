@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowLeftRight, ArrowRight, Check, ExternalLink, Lock, Walle
 import { toast } from 'sonner'
 import { buildTxExplorerUrl } from '@/onchain-facts'
 import { parseUsdc } from '@/onchain-money'
-import { CHAIN_ID, POOL_ADDRESS, USDC_ADDRESS, poolAbi } from '@/lib/pool'
+import { CHAIN_ID, MAX_BATCH, POOL_ADDRESS, USDC_ADDRESS, poolAbi } from '@/lib/pool'
 import { MAX_MEMO_BYTES, createNote, splitIntoDenominations } from '@/lib/notes'
 import { decodeAddress, shortAddress, toBytes32Hex } from '@/lib/shielded-keys'
 import { useShielded } from '@/lib/shielded-context'
@@ -15,7 +15,8 @@ import { friendlyError, shortHash, usdcText } from '@/lib/format'
 import { DURATION, SPRING, STAGGER } from '@/lib/motion'
 import { Badge, Notice, Row, Spinner, Stepper, SuccessMark } from '@/components/ui'
 
-const MAX_NOTES = 10
+/** Large payments are split into notes and sent in batches of MAX_BATCH notes per transaction. */
+const MAX_NOTES = MAX_BATCH * 5
 
 type Phase = 'select' | 'confirm' | 'success'
 const PHASES: readonly Phase[] = ['select', 'confirm', 'success']
@@ -145,7 +146,7 @@ export function SendPrivate() {
       : parsed && !split
         ? `Amounts must be made of ${denominations.map(usdcText).join(', ')} USDC notes (smallest ${usdcText(smallest)}).`
         : tooMany
-          ? `That would take more than ${MAX_NOTES} notes. Send a smaller amount, or send in several payments.`
+          ? `That would take more than ${MAX_NOTES} notes in one payment. Send it as several payments, or in larger note sizes.`
           : insufficient
             ? 'Not enough USDC. Use Get test USDC in the sidebar.'
             : null
@@ -154,7 +155,8 @@ export function SendPrivate() {
     !!keys && !!decoded && !!split && !tooMany && !insufficient && memoBytes <= MAX_MEMO_BYTES && !!POOL_ADDRESS
 
   const notesText = split && !tooMany ? grouped.map(([i, c]) => `${c} × ${usdcText(denominations[i])}`).join(' + ') : '—'
-  const txText = split && !tooMany ? `1 approval + ${split.length} deposit${split.length === 1 ? '' : 's'}` : '—'
+  const batchCount = split ? Math.ceil(split.length / MAX_BATCH) : 0
+  const txText = split && !tooMany ? `1 approval + ${batchCount} deposit${batchCount === 1 ? '' : 's'}` : '—'
 
   const updateStep = (index: number, patch: Partial<Step>) =>
     setSteps((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)))
@@ -164,7 +166,15 @@ export function SendPrivate() {
     if (!keys || !decoded || !split || !publicClient || !pool || !address || !parsed) return
     setError(null)
     setSending(true)
-    const labels: string[] = ['Approve USDC', ...split.map((d, n) => `Deposit note ${n + 1} of ${split.length} (${usdcText(denominations[d])} USDC)`)]
+    const batches: number[][] = []
+    for (let i = 0; i < split.length; i += MAX_BATCH) batches.push(split.slice(i, i + MAX_BATCH))
+    const labels: string[] = [
+      'Approve USDC',
+      ...batches.map((b, n) => {
+        const value = b.reduce((sum, d) => sum + denominations[d], 0n)
+        return `Deposit ${b.length} note${b.length === 1 ? '' : 's'} (${usdcText(value)} USDC)${batches.length > 1 ? `, batch ${n + 1} of ${batches.length}` : ''}`
+      }),
+    ]
     setSteps(labels.map((label) => ({ label, status: 'pending' })))
     let current = 0
     try {
@@ -190,19 +200,20 @@ export function SendPrivate() {
       }
       updateStep(0, { status: 'done' })
 
-      for (let n = 0; n < split.length; n++) {
+      for (let n = 0; n < batches.length; n++) {
         current = n + 1
         updateStep(current, { status: 'active' })
-        const note = createNote(decoded, keys.viewPub, memo)
+        const batch = batches[n]
+        const notes = batch.map(() => createNote(decoded, keys.viewPub, memo))
         const hash = await writeContractAsync({
           address: pool,
           abi: poolAbi,
-          functionName: 'deposit',
+          functionName: 'depositMany',
           args: [
-            split[n],
-            toBytes32Hex(note.commitment),
-            bytesToHex(note.ephemeralPub),
-            bytesToHex(note.ciphertext),
+            batch,
+            notes.map((note) => toBytes32Hex(note.commitment)),
+            notes.map((note) => bytesToHex(note.ephemeralPub)),
+            notes.map((note) => bytesToHex(note.ciphertext)),
           ],
           chainId: CHAIN_ID,
         })

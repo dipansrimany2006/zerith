@@ -36,6 +36,8 @@ contract ShieldedPool is Ownable2Step, Pausable, ReentrancyGuard {
     uint256 public constant FIELD_SIZE =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
     uint256 public constant MAX_CIPHERTEXT = 512;
+    /// @notice Maximum number of notes accepted in a single batch deposit.
+    uint256 public constant MAX_BATCH = 10;
 
     IERC20 public immutable usdc;
     IVerifier public immutable verifier;
@@ -69,6 +71,8 @@ contract ShieldedPool is Ownable2Step, Pausable, ReentrancyGuard {
     error CiphertextTooLarge();
     error TreeFull();
     error IncorrectDepositAmount();
+    /// @notice Batch arrays differ in length, are empty, or exceed MAX_BATCH notes.
+    error InvalidBatch();
     error InvalidRecipient();
     error InvalidRelayer();
     error FeeExceedsDenomination();
@@ -139,22 +143,33 @@ contract ShieldedPool is Ownable2Step, Pausable, ReentrancyGuard {
         bytes32 ephemeralPub,
         bytes calldata ciphertext
     ) external nonReentrant whenNotPaused {
-        _checkDenominationIndex(denomIndex);
-        if (commitment == bytes32(0) || uint256(commitment) >= FIELD_SIZE) revert InvalidCommitment();
-        if (commitmentSeen[commitment]) revert CommitmentAlreadySeen();
-        if (ciphertext.length > MAX_CIPHERTEXT) revert CiphertextTooLarge();
+        uint256 amount = _recordDeposit(denomIndex, commitment, ephemeralPub, ciphertext);
+        _pullExact(amount);
+    }
 
-        commitmentSeen[commitment] = true;
-        uint32 leafIndex = _insert(denomIndex, uint256(commitment));
-        emit Deposit(denomIndex, commitment, leafIndex, block.timestamp, ephemeralPub, ciphertext);
+    /// @notice Deposits one to MAX_BATCH notes with a single token pull for their total amount.
+    /// @dev Records all notes before pulling tokens; any failure rolls back the entire batch.
+    /// @param denomIndices Denomination index for each note; all arrays must have equal length.
+    /// @param commitments Nonzero, globally unique note commitments in the scalar field.
+    /// @param ephemeralPubs Ephemeral public key for each encrypted note delivery.
+    /// @param ciphertexts Opaque encrypted note payloads, each at most MAX_CIPHERTEXT bytes.
+    function depositMany(
+        uint8[] calldata denomIndices,
+        bytes32[] calldata commitments,
+        bytes32[] calldata ephemeralPubs,
+        bytes[] calldata ciphertexts
+    ) external nonReentrant whenNotPaused {
+        uint256 length = denomIndices.length;
+        if (
+            length == 0 || length > MAX_BATCH || commitments.length != length
+                || ephemeralPubs.length != length || ciphertexts.length != length
+        ) revert InvalidBatch();
 
-        uint256 amount = denominations[denomIndex];
-        uint256 balanceBefore = usdc.balanceOf(address(this));
-        usdc.safeTransferFrom(msg.sender, address(this), amount);
-        uint256 balanceAfter = usdc.balanceOf(address(this));
-        if (balanceAfter < balanceBefore || balanceAfter - balanceBefore != amount) {
-            revert IncorrectDepositAmount();
+        uint256 total = 0;
+        for (uint256 i = 0; i < length; ++i) {
+            total += _recordDeposit(denomIndices[i], commitments[i], ephemeralPubs[i], ciphertexts[i]);
         }
+        _pullExact(total);
     }
 
     /// @notice Redeems a proven note and optionally pays its proof-bound relayer fee, even while paused.
@@ -259,6 +274,33 @@ contract ShieldedPool is Ownable2Step, Pausable, ReentrancyGuard {
     /// @notice Always reverts: ownership can be transferred in two steps but never renounced.
     function renounceOwnership() public pure override {
         revert OwnershipRenunciationDisabled();
+    }
+
+    function _recordDeposit(
+        uint8 denomIndex,
+        bytes32 commitment,
+        bytes32 ephemeralPub,
+        bytes calldata ciphertext
+    ) private returns (uint256 amount) {
+        _checkDenominationIndex(denomIndex);
+        if (commitment == bytes32(0) || uint256(commitment) >= FIELD_SIZE) revert InvalidCommitment();
+        if (commitmentSeen[commitment]) revert CommitmentAlreadySeen();
+        if (ciphertext.length > MAX_CIPHERTEXT) revert CiphertextTooLarge();
+
+        commitmentSeen[commitment] = true;
+        uint32 leafIndex = _insert(denomIndex, uint256(commitment));
+        emit Deposit(denomIndex, commitment, leafIndex, block.timestamp, ephemeralPub, ciphertext);
+
+        amount = denominations[denomIndex];
+    }
+
+    function _pullExact(uint256 amount) private {
+        uint256 balanceBefore = usdc.balanceOf(address(this));
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
+        uint256 balanceAfter = usdc.balanceOf(address(this));
+        if (balanceAfter < balanceBefore || balanceAfter - balanceBefore != amount) {
+            revert IncorrectDepositAmount();
+        }
     }
 
     function _checkDenominationIndex(uint8 denomIndex) private view {

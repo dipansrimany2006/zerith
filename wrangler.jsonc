@@ -17,7 +17,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Relayer"] }],
   "vars": {
     // Public, also baked into the app at build time from VITE_POOL_ADDRESS.
-    "POOL_ADDRESS": "0xfb73fe8487910611af9039bf0b72eba0a15770b5"
+    "POOL_ADDRESS": "0x213ec5ddc7aa24100ddfcc96787d4d3556431b18"
   }
   // RELAYER_PRIVATE_KEY is a secret: `bunx wrangler secret put RELAYER_PRIVATE_KEY`
 }

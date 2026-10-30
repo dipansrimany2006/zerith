@@ -67,11 +67,15 @@ contract ShieldedPoolInvariantTest is ShieldedPoolTestBase {
     }
 
     /// PROPERTY: the pool's token balance always equals the sum of unspent deposits.
+    /// forge-config: default.invariant.runs = 32
+    /// forge-config: default.invariant.depth = 100
     function invariant_PoolBalanceEqualsUnspentDeposits() public view {
         assertEq(usdc.balanceOf(address(pool)), handler.ghostUnspent());
     }
 
     /// PROPERTY: every tree's leaf count never exceeds the number of deposits made.
+    /// forge-config: default.invariant.runs = 32
+    /// forge-config: default.invariant.depth = 100
     function invariant_LeafCountsMatchDeposits() public view {
         uint256 total;
         for (uint8 i = 0; i < 3; ++i) {
