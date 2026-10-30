@@ -143,10 +143,6 @@ export function Wallets({ show }: { show: boolean }) {
           <Activity />
         </motion.div>
       )}
-
-      <p className="mt-auto pt-8 text-[11px] leading-relaxed text-ink-2">
-        Testnet only and unaudited, with a development proof setup. Do not use real funds.
-      </p>
     </div>
   )
 }
