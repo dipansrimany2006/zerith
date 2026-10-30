@@ -83,11 +83,6 @@ export function leavesFor(logs: readonly DepositLog[], denomIndex: number): bigi
     .map((l) => l.commitment)
 }
 
-export function countByDenomination(logs: readonly DepositLog[], count: number): number[] {
-  const counts = Array.from({ length: count }, () => 0)
-  for (const l of logs) if (l.denomIndex < count) counts[l.denomIndex] += 1
-  return counts
-}
 
 export function readOwnNotes(
   logs: readonly DepositLog[],

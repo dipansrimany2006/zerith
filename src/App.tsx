@@ -16,7 +16,8 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { ConnectKitButton } from 'connectkit'
 import { useSwitchChain } from 'wagmi'
-import { ArrowDownToLine, ArrowLeftRight, ArrowRight, FileCheck2, Lock, type LucideIcon } from 'lucide-react'
+import { ArrowDownToLine, ArrowLeftRight, ArrowRight, FileCheck2, Lock, Moon, Sun, type LucideIcon } from 'lucide-react'
+import { useTheme } from '@/lib/theme'
 import { CHAIN_ID, POOL_ADDRESS } from '@/lib/pool'
 import { ShieldedProvider, useShielded } from '@/lib/shielded-context'
 import { useChainGuard } from '@/lib/use-chain-guard'
@@ -59,12 +60,43 @@ function useEntranceStage() {
   return stage
 }
 
+/** Sun/moon switch: the icons swap with a quarter turn. */
+function ThemeToggle() {
+  const [theme, setTheme] = useTheme()
+  const dark = theme === 'dark'
+  const label = dark ? 'Switch to light theme' : 'Switch to dark theme'
+  return (
+    <motion.button
+      type="button"
+      onClick={() => setTheme(dark ? 'light' : 'dark')}
+      aria-label={label}
+      title={label}
+      whileTap={{ scale: 0.9 }}
+      transition={SPRING.snappy}
+      className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-muted transition-colors hover:text-[color:var(--rail-fg)]"
+    >
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={theme}
+          initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
+          animate={{ opacity: 1, rotate: 0, scale: 1 }}
+          exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
+          transition={SPRING.snappy}
+          className="flex"
+        >
+          {dark ? <Sun className="size-5" aria-hidden /> : <Moon className="size-5" aria-hidden />}
+        </motion.span>
+      </AnimatePresence>
+    </motion.button>
+  )
+}
+
 function Rail({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   const { keys, lock } = useShielded()
   return (
-    <nav aria-label="Sections" className="rail flex items-center gap-1 rounded-[22px] bg-ink p-2 lg:h-full lg:flex-col lg:gap-2 lg:rounded-[28px] lg:py-6">
-      <span className="flex size-12 shrink-0 items-center justify-center text-canvas" role="img" aria-label="Zerith" title="Zerith">
-        <ZerithMark className="size-8" />
+    <nav aria-label="Sections" className="rail flex items-center gap-1 rounded-[22px] bg-[var(--rail)] p-2 lg:h-full lg:flex-col lg:gap-2 lg:rounded-[28px] lg:py-6">
+      <span className="flex size-12 shrink-0 items-center justify-center text-[color:var(--rail-fg)]" role="img" aria-label="Zerith" title="Zerith">
+        <ZerithMark className="size-8" pupil="var(--rail)" />
       </span>
       <div className="flex flex-1 items-center justify-center gap-1 lg:flex-col lg:gap-3">
         {NAV.map((item, i) => {
@@ -82,7 +114,7 @@ function Rail({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
               animate={{ opacity: 1, y: 0 }}
               whileTap={{ scale: 0.92 }}
               transition={{ ...SPRING.snappy, delay: i * STAGGER.tight }}
-              className={`group relative flex h-12 min-w-12 items-center justify-center gap-2 rounded-2xl px-3 transition-colors lg:w-12 lg:px-0 ${active ? 'text-canvas' : 'text-muted hover:text-line'}`}
+              className={`group relative flex h-12 min-w-12 items-center justify-center gap-2 rounded-2xl px-3 transition-colors lg:w-12 lg:px-0 ${active ? 'text-[color:var(--rail-fg)]' : 'text-muted hover:text-[color:var(--rail-hover)]'}`}
             >
               {active && (
                 <motion.span layoutId="rail-active" className="absolute inset-0 rounded-2xl bg-[var(--rail-active)]" transition={SPRING.snappy} aria-hidden />
@@ -93,31 +125,28 @@ function Rail({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
           )
         })}
       </div>
-      {keys ? (
-        <motion.button
-          type="button"
-          onClick={lock}
-          aria-label="Lock keys"
-          title="Lock keys"
-          whileHover={{ rotate: -8 }}
-          whileTap={{ scale: 0.9 }}
-          transition={SPRING.chevron}
-          className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-muted transition-colors hover:text-canvas"
-        >
-          <Lock className="size-5" aria-hidden />
-        </motion.button>
-      ) : (
-        <span className="size-12 shrink-0" aria-hidden />
-      )}
+      <div className="flex items-center gap-1 lg:flex-col lg:gap-2">
+        <ThemeToggle />
+        {keys ? (
+          <motion.button
+            type="button"
+            onClick={lock}
+            aria-label="Lock keys"
+            title="Lock keys"
+            whileHover={{ rotate: -8 }}
+            whileTap={{ scale: 0.9 }}
+            transition={SPRING.chevron}
+            className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-muted transition-colors hover:text-[color:var(--rail-fg)]"
+          >
+            <Lock className="size-5" aria-hidden />
+          </motion.button>
+        ) : (
+          <span className="hidden size-12 shrink-0 lg:block" aria-hidden />
+        )}
+      </div>
     </nav>
   )
 }
-
-const LANDING_POINTS = [
-  { title: 'Fixed notes', sub: '0.10 · 1 · 10 USDC' },
-  { title: 'Private proof', sub: 'Built in your browser' },
-  { title: 'No gas to receive', sub: 'Relayer pays for you' },
-]
 
 function Landing() {
   return (
@@ -135,20 +164,6 @@ function Landing() {
           Send USDC into a shared pool and let the recipient withdraw with a zero-knowledge proof. On the public chain,
           nobody can tell which deposit paid which withdrawal.
         </p>
-        <ul className="mt-8 grid max-w-lg gap-3 sm:grid-cols-3">
-          {LANDING_POINTS.map((p, i) => (
-            <motion.li
-              key={p.title}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...SPRING.smooth, delay: 0.3 + i * STAGGER.normal }}
-              className="box rounded-2xl p-4"
-            >
-              <p className="text-sm font-semibold text-ink">{p.title}</p>
-              <p className="text-[11px] text-ink-2">{p.sub}</p>
-            </motion.li>
-          ))}
-        </ul>
         <div className="mt-8">
           <ConnectKitButton.Custom>
             {({ show, isConnecting }) => (
@@ -194,7 +209,7 @@ function Panel({ tab }: { tab: Tab }) {
   return (
     <div className="flex flex-1 flex-col">
       {wrongChain && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warn bg-canvas p-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warn bg-[var(--raised)] p-4">
           <p className="text-sm font-semibold text-ink">Your wallet is on another network.</p>
           <button className="btn-ghost" disabled={isPending} onClick={() => switchChain({ chainId: CHAIN_ID })}>
             Switch to Arc Testnet

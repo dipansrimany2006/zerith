@@ -12,10 +12,20 @@
   --muted: #807f8d;
 
   /* Derived from the palette */
-  --canvas: #ffffff;
+  --canvas: #ffffff; /* page */
   --surface: #f4f4f9; /* --bg pulled toward white, for inset panels */
+  --raised: #ffffff; /* cards, fields and chips that sit on a panel */
+  --rail: #050608; /* the nav rail stays dark in both themes */
+  --rail-fg: #ffffff;
+  --rail-hover: #c4c4cd; /* inactive rail icons on hover */
+  --rail-outline: #e9e9f4; /* focus outline on the rail */
+  --body: var(--bg);
+  --frame-ring: rgba(5, 6, 8, 0.04);
   --rail-active: rgba(233, 233, 244, 0.14); /* --bg over the dark rail */
   --shadow-soft: 0 1px 2px rgba(5, 6, 8, 0.04), 0 10px 28px -14px rgba(5, 6, 8, 0.16);
+  --shadow-strong: 0 12px 26px -12px rgba(5, 6, 8, 0.55);
+  --focus-ring: rgba(5, 6, 8, 0.06);
+  --overlay: rgba(5, 6, 8, 0.3);
 
   /* Status colors, kept muted so they sit inside the monochrome palette */
   --success: #2f7a55;
@@ -23,6 +33,45 @@
   --warn: #8a6416;
 
   color-scheme: light;
+}
+
+/* Dark theme: the same palette inverted. --ink becomes the light text, --bg the near-black base. */
+:root[data-theme='dark'] {
+  --bg: #050608;
+  --line: #2c2d35;
+  --ink: #e9e9f4;
+  --ink-2: #a4a4b0;
+  --muted: #807f8d;
+
+  --canvas: #0a0b0e;
+  --surface: #121318;
+  --raised: #1a1b21;
+  --rail: #17181f;
+  --rail-fg: #e9e9f4;
+  --rail-active: rgba(233, 233, 244, 0.1);
+  --body: var(--canvas);
+  --frame-ring: var(--line);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(233, 233, 244, 0.04), 0 10px 28px -14px rgba(0, 0, 0, 0.7);
+  --shadow-strong: 0 12px 26px -12px rgba(233, 233, 244, 0.25);
+  --focus-ring: rgba(233, 233, 244, 0.1);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  --success: #62c08f;
+  --danger: #f0798f;
+  --warn: #d9ab52;
+
+  color-scheme: dark;
+}
+
+/* Theme switches cross-fade instead of snapping. Only colors, and only while switching. */
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    fill 0.3s ease !important;
 }
 
 * {
@@ -34,7 +83,7 @@ body {
   min-height: 100dvh;
   font-family: 'Barlow', system-ui, sans-serif;
   color: var(--ink);
-  background: var(--bg);
+  background: var(--body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -43,13 +92,13 @@ body {
   outline-offset: 2px;
 }
 .rail :focus-visible {
-  outline-color: var(--bg);
+  outline-color: var(--rail-outline);
 }
 
-/* The white "screen" that holds the whole app, like the device in the reference. */
+/* Dialog surface (the withdraw sheet). */
 .frame {
   background: var(--canvas);
-  box-shadow: 0 40px 90px -40px rgba(5, 6, 8, 0.28), 0 0 0 1px rgba(5, 6, 8, 0.04);
+  box-shadow: 0 40px 90px -40px rgba(5, 6, 8, 0.28), 0 0 0 1px var(--frame-ring);
 }
 
 .panel {
@@ -57,7 +106,7 @@ body {
 }
 
 .box {
-  background: var(--canvas);
+  background: var(--raised);
   box-shadow: var(--shadow-soft);
 }
 
@@ -81,7 +130,7 @@ body {
 }
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 12px 26px -12px rgba(5, 6, 8, 0.55);
+  box-shadow: var(--shadow-strong);
 }
 .btn-primary:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
@@ -109,7 +158,7 @@ body {
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--ink);
-  background: var(--canvas);
+  background: var(--raised);
   border: 1px solid var(--line);
   transition:
     border-color 0.15s ease,
@@ -147,13 +196,13 @@ body {
 }
 /* On the grey panel, fields sit on white so they stay visible. */
 .panel .field {
-  background: var(--canvas);
+  background: var(--raised);
   border-color: var(--line);
 }
 .field:focus {
-  background: var(--canvas);
+  background: var(--raised);
   border-color: var(--ink);
-  box-shadow: 0 0 0 4px rgba(5, 6, 8, 0.06);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 /* Underlined amount field from the reference; the ink line grows from the left on focus. */

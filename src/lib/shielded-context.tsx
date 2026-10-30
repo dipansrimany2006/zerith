@@ -11,7 +11,7 @@ import {
 import { useAccount, usePublicClient, useSignMessage } from 'wagmi'
 import { CHAIN_ID, POOL_ADDRESS, POOL_DEPLOY_BLOCK, poolAbi } from '@/lib/pool'
 import { computeNullifierHash, type IncomingNote, type OutgoingNote } from '@/lib/notes'
-import { countByDenomination, fetchDeposits, readOwnNotes, type DepositLog } from '@/lib/scan'
+import { fetchDeposits, readOwnNotes, type DepositLog } from '@/lib/scan'
 import {
   KEY_DERIVATION_MESSAGE,
   deriveKeys,
@@ -31,7 +31,6 @@ interface ShieldedState {
   lock: () => void
   denominations: bigint[]
   logs: DepositLog[]
-  poolCounts: number[]
   incoming: OwnedNote[]
   outgoing: OutgoingNote[]
   refreshing: boolean
@@ -141,8 +140,6 @@ export function ShieldedProvider({ children }: { children: ReactNode }) {
     }
   }, [refresh])
 
-  const poolCounts = useMemo(() => countByDenomination(logs, denominations.length), [logs, denominations])
-
   const value = useMemo<ShieldedState>(
     () => ({
       keys,
@@ -151,7 +148,6 @@ export function ShieldedProvider({ children }: { children: ReactNode }) {
       lock,
       denominations,
       logs,
-      poolCounts,
       incoming,
       outgoing,
       refreshing,
@@ -159,7 +155,7 @@ export function ShieldedProvider({ children }: { children: ReactNode }) {
       error,
       refresh,
     }),
-    [keys, unlocking, unlock, lock, denominations, logs, poolCounts, incoming, outgoing, refreshing, loadedOnce, error, refresh],
+    [keys, unlocking, unlock, lock, denominations, logs, incoming, outgoing, refreshing, loadedOnce, error, refresh],
   )
 
   return <ShieldedContext.Provider value={value}>{children}</ShieldedContext.Provider>

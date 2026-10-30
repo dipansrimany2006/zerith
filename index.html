@@ -4,9 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content="Arc Studio by Circle — https://studio.arc.io" />
-    <title>Zerith · Private USDC payments</title>
+    <title>Zerith - Private payments</title>
     <meta name="description" content="Zerith: private USDC payments on Arc Testnet, withdrawn with a zero-knowledge proof." />
     <meta name="theme-color" content="#050608" />
+    <script>
+      // Apply the theme before first paint so there is no flash. Light is the default; dark only when chosen.
+      ;(function () {
+        var t = null
+        try {
+          t = localStorage.getItem('zerith-theme')
+        } catch (e) {}
+        document.documentElement.dataset.theme = t === 'dark' ? 'dark' : 'light'
+      })()
+    </script>
     <link rel="icon" type="image/svg+xml" href="/zerith.svg" />
     <link rel="icon" type="image/png" href="/zerith.png" />
     <link rel="apple-touch-icon" href="/zerith.png" />

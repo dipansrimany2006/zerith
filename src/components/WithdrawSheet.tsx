@@ -163,7 +163,7 @@ export function WithdrawSheet({ note, onClose }: { note: OwnedNote; onClose: () 
           transition={{ duration: DURATION.backdrop }}
           onClick={() => !busy && onClose()}
         >
-          <div className="absolute inset-0 bg-[rgba(5,6,8,0.3)] backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-sm" />
           <motion.section
             role="dialog"
             aria-modal="true"

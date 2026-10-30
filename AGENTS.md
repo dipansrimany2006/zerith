@@ -3,7 +3,7 @@
 Zerith (formerly Shielded USDC): private USDC payments on Arc Testnet (chain ID 5042002). Built with Arc Studio.
 - Logo: `assets/zerith.png` (source), `public/zerith.svg` (favicon), `src/components/Logo.tsx` (in-app mark).
 - The strings "Shielded USDC" in `KEY_DERIVATION_MESSAGE` (src/lib/shielded-keys.ts) and the report message (Disclosure.tsx) are protocol strings: never rename them, or existing keys and signed reports break.
-- Deploy: Cloudflare Worker `zerith` (`bun run cf:deploy`, config in wrangler.jsonc). The relayer key is a Worker secret.
+- Deploy: Cloudflare Worker `zerith` (`bun run cf:deploy`, config in wrangler.jsonc), live at https://zerith.dipansrimany.workers.dev on the "Dipansrimany@gmail.com's Account" Cloudflare account. The relayer key is a Worker secret.
 
 ## Deployed contracts (Arc Testnet)
 - ShieldedPool (current, v2): 0x213ec5ddc7aa24100ddfcc96787d4d3556431b18 (deploy tx 0xf954e49e0f403ee626684b60666e378f2a4531f5a003f3bff192bca86e264565, block 69873014). Has `depositMany` (up to 10 notes per transaction).

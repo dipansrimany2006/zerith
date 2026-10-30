@@ -5,12 +5,12 @@ import { erc20Abi } from 'viem'
 import { useAccount, useReadContract } from 'wagmi'
 import { Wallet } from 'lucide-react'
 import { ZerithMark } from '@/components/Logo'
+import { Activity } from '@/components/Activity'
 import { CHAIN_ID, USDC_ADDRESS } from '@/lib/pool'
 import { useShielded, useShieldedBalance } from '@/lib/shielded-context'
 import { usdcNumber } from '@/lib/format'
 import { SPRING, STAGGER } from '@/lib/motion'
-import { AnimatedNumber, Badge, SectionLabel } from '@/components/ui'
-import { PrivacyMeter } from '@/components/PrivacyMeter'
+import { AnimatedNumber, Badge } from '@/components/ui'
 
 function ConnectPill() {
   return (
@@ -74,7 +74,7 @@ function WalletRow({
 const Dash = () => <span className="text-muted">—</span>
 const Skeleton = () => <span className="skeleton inline-block h-4 w-14 align-middle" aria-label="Loading" />
 
-/** Middle column: balances and pool size, laid out like the wallet list in the reference. */
+/** Middle column: balances and recent private activity, laid out like the wallet list in the reference. */
 export function Wallets({ show }: { show: boolean }) {
   const { address, isConnected } = useAccount()
   const { keys, loadedOnce } = useShielded()
@@ -133,14 +133,16 @@ export function Wallets({ show }: { show: boolean }) {
         />
       </ul>
 
-      <div className="mt-8">
-        <SectionLabel>Pool size</SectionLabel>
-        <PrivacyMeter show={show} delay={0.12} />
-        <p className="mt-4 text-[11px] leading-relaxed text-ink-2 text-pretty">
-          A payment hides among every deposit of the same size. Amounts and times stay public; only the link between
-          deposit and withdrawal is hidden.
-        </p>
-      </div>
+      {isConnected && (
+        <motion.div
+          className="mt-8"
+          initial={{ opacity: 0, y: 8 }}
+          animate={show ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+          transition={{ ...SPRING.smooth, delay: 2 * STAGGER.normal }}
+        >
+          <Activity />
+        </motion.div>
+      )}
 
       <p className="mt-auto pt-8 text-[11px] leading-relaxed text-ink-2">
         Testnet only and unaudited, with a development proof setup. Do not use real funds.

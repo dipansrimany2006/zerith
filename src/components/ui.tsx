@@ -72,7 +72,7 @@ export function Notice({
       animate={{ opacity: 1, y: 0 }}
       transition={SPRING.snappy}
       role={tone === 'error' ? 'alert' : undefined}
-      className={`border-l-2 bg-canvas py-2.5 pl-3 pr-3 text-xs leading-relaxed text-pretty ${style}`}
+      className={`border-l-2 bg-[var(--raised)] py-2.5 pl-3 pr-3 text-xs leading-relaxed text-pretty ${style}`}
     >
       {children}
     </motion.div>

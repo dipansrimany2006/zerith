@@ -13,17 +13,54 @@
 import './tracing'
 import './console-capture'
 
-import { StrictMode } from 'react'
+import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ConnectKitProvider } from 'connectkit'
 import { Toaster } from 'sonner'
 import { config } from './config'
+import { useTheme } from './lib/theme'
 import App from './App'
 import './index.css'
 
 const queryClient = new QueryClient()
+
+// The wallet modal and toasts read the app's color tokens, so they follow the theme too.
+function ThemedProviders({ children }: { children: ReactNode }) {
+  const [theme] = useTheme()
+  return (
+    <ConnectKitProvider
+      mode={theme}
+      customTheme={{
+        '--ck-font-family': 'Barlow, system-ui, sans-serif',
+        '--ck-border-radius': '20px',
+        '--ck-primary-button-border-radius': '12px',
+        '--ck-body-color': 'var(--ink)',
+        '--ck-body-color-muted': 'var(--ink-2)',
+        '--ck-body-background': 'var(--canvas)',
+        '--ck-body-background-secondary': 'var(--surface)',
+        '--ck-accent-color': 'var(--ink)',
+        '--ck-accent-text-color': 'var(--canvas)',
+      }}
+    >
+      {children}
+      <Toaster
+        position="top-center"
+        theme={theme}
+        toastOptions={{
+          style: {
+            fontFamily: 'Barlow, system-ui, sans-serif',
+            borderRadius: 14,
+            color: 'var(--ink)',
+            background: 'var(--raised)',
+            borderColor: 'var(--line)',
+          },
+        }}
+      />
+    </ConnectKitProvider>
+  )
+}
 
 // Studio logo SVG
 const StudioLogo = () => (
@@ -70,27 +107,10 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider
-          mode="light"
-          customTheme={{
-            '--ck-font-family': 'Barlow, system-ui, sans-serif',
-            '--ck-border-radius': '20px',
-            '--ck-primary-button-border-radius': '12px',
-            '--ck-body-color': '#050608',
-            '--ck-body-color-muted': '#64656c',
-            '--ck-body-background': '#ffffff',
-            '--ck-body-background-secondary': '#f4f4f9',
-            '--ck-accent-color': '#050608',
-            '--ck-accent-text-color': '#ffffff',
-          }}
-        >
+        <ThemedProviders>
           <App />
           <StudioWatermark />
-          <Toaster
-            position="top-center"
-            toastOptions={{ style: { fontFamily: 'Barlow, system-ui, sans-serif', borderRadius: 14, color: '#050608', borderColor: '#c4c4cd' } }}
-          />
-        </ConnectKitProvider>
+        </ThemedProviders>
       </QueryClientProvider>
     </WagmiProvider>
   </StrictMode>,
