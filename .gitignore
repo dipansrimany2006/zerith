@@ -11,3 +11,5 @@ contracts/out/
 contracts/cache/
 cache/
 *.log
+.wrangler/
+.dev.vars*

@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "zerith",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // These paths reach the Worker code; everything else is served straight from dist/.
+    "run_worker_first": ["/api/*", "/rpc"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "RELAYER", "class_name": "Relayer" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Relayer"] }],
+  "vars": {
+    // Public, also baked into the app at build time from VITE_POOL_ADDRESS.
+    "POOL_ADDRESS": "0xfb73fe8487910611af9039bf0b72eba0a15770b5"
+  }
+  // RELAYER_PRIVATE_KEY is a secret: `bunx wrangler secret put RELAYER_PRIVATE_KEY`
+}

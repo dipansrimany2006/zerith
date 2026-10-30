@@ -1,8 +1,10 @@
-import { KeyRound } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowRight, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { useShielded } from '@/lib/shielded-context'
 import { friendlyError } from '@/lib/format'
-import { Card, Notice, Spinner } from '@/components/ui'
+import { SPRING } from '@/lib/motion'
+import { Notice, Spinner } from '@/components/ui'
 
 /** Shown until the wallet signs the key-derivation message. No transaction, no gas. */
 export function UnlockCard() {
@@ -17,29 +19,35 @@ export function UnlockCard() {
   }
 
   return (
-    <Card>
-      <div className="mb-4 flex size-11 items-center justify-center rounded-2xl" style={{ background: 'rgba(18,45,69,0.08)' }}>
-        <KeyRound className="size-5" style={{ color: 'var(--ink)' }} />
-      </div>
-      <h2 className="display text-2xl font-bold text-balance" style={{ color: 'var(--ink)' }}>
-        Create your shielded address
-      </h2>
-      <p className="mt-2 text-sm leading-relaxed text-pretty" style={{ color: 'var(--muted)' }}>
+    <div className="flex h-full flex-col justify-center py-6">
+      <motion.span
+        initial={{ scale: 0.6, rotate: -20, opacity: 0 }}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={SPRING.bouncy}
+        className="flex size-14 items-center justify-center rounded-2xl bg-ink text-canvas"
+        aria-hidden
+      >
+        <KeyRound className="size-6" />
+      </motion.span>
+      <h2 className="mt-6 max-w-md font-display text-4xl font-light leading-tight text-ink text-balance">Create your Zerith address</h2>
+      <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-2 text-pretty">
         Sign one message to create the private keys for this wallet. They are built in your browser and never sent
         anywhere. Signing costs nothing and sends no transaction.
       </p>
-      <div className="mt-5 space-y-3">
+      <div className="mt-6 max-w-md space-y-3">
         <button className="btn-primary" disabled={unlocking} onClick={() => void onUnlock()}>
           {unlocking ? (
-            <span className="flex items-center justify-center gap-2">
+            <>
               <Spinner /> Confirm in wallet...
-            </span>
+            </>
           ) : (
-            'Sign and unlock'
+            <>
+              Sign and unlock <ArrowRight className="btn-arrow size-4" aria-hidden />
+            </>
           )}
         </button>
         <Notice>Use the same wallet next time and you get the same address and the same payments back.</Notice>
       </div>
-    </Card>
+    </div>
   )
 }

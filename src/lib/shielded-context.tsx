@@ -170,3 +170,14 @@ export function useShielded(): ShieldedState {
   if (!ctx) throw new Error('useShielded must be used inside ShieldedProvider')
   return ctx
 }
+
+/** Incoming notes split by spent status, with the unspent total in base units. */
+export function useShieldedBalance() {
+  const { incoming, denominations } = useShielded()
+  return useMemo(() => {
+    const unspent = incoming.filter((n) => !n.spent)
+    const spent = incoming.filter((n) => n.spent)
+    const total = unspent.reduce((sum, n) => sum + (denominations[n.denomIndex] ?? 0n), 0n)
+    return { unspent, spent, total }
+  }, [incoming, denominations])
+}

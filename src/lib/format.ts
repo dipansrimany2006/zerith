@@ -9,6 +9,11 @@ export function usdcText(raw: bigint): string {
   return `${whole}.${padded}`
 }
 
+/** USDC base units (6 decimals) as a plain number, for display and animation only. */
+export function usdcNumber(raw: bigint): number {
+  return Number(raw) / 1e6
+}
+
 export function timeAgo(unixSeconds: number): string {
   const diff = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds)
   if (diff < 60) return 'just now'

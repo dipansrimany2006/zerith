@@ -7,6 +7,8 @@ import { poseidon1 } from 'poseidon-lite'
 export const FIELD_SIZE =
   21888242871839275222246405745257275088548364400416034343698204186575808495617n
 
+// Protocol string: keys are derived from the signature over it, so changing any character (even the
+// name, after the rename to Zerith) would give every user new keys and strand the notes already sent.
 export const KEY_DERIVATION_MESSAGE = [
   'Shielded USDC: derive private payment keys (v1)',
   '',

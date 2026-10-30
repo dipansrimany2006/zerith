@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { isAddress, zeroAddress, type Address } from 'viem'
 import { usePublicClient, useWriteContract } from 'wagmi'
-import { Check, ExternalLink, X } from 'lucide-react'
+import { ArrowRight, ExternalLink, X } from 'lucide-react'
 import { buildTxExplorerUrl } from '@/onchain-facts'
 import { CHAIN_ID, POOL_ADDRESS, poolAbi } from '@/lib/pool'
 import { leavesFor } from '@/lib/scan'
@@ -10,7 +10,8 @@ import { proveWithdraw } from '@/lib/prover'
 import { useShielded, type OwnedNote } from '@/lib/shielded-context'
 import { useChainGuard } from '@/lib/use-chain-guard'
 import { friendlyError, shortHash, usdcText } from '@/lib/format'
-import { Notice, Row, Spinner } from '@/components/ui'
+import { DURATION, SPRING } from '@/lib/motion'
+import { Notice, Row, Spinner, Stepper, SuccessMark } from '@/components/ui'
 
 type Mode = 'relayer' | 'self'
 type Stage = 'idle' | 'syncing' | 'proving' | 'submitting' | 'done'
@@ -65,6 +66,15 @@ export function WithdrawSheet({ note, onClose }: { note: OwnedNote; onClose: () 
   const fresh = openedAt / 1000 - note.timestamp < FRESH_NOTE_SECONDS
   const feeTooHigh = mode === 'relayer' && fee >= denom
   const canStart = !!keys && validDestination && !busy && stage !== 'done' && !feeTooHigh && (mode === 'self' || !!relayerInfo)
+
+  // Escape closes the dialog, except while a withdrawal is in flight.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busy) onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [busy, onClose])
 
   const withdraw = async () => {
     const pool = POOL_ADDRESS
@@ -139,82 +149,110 @@ export function WithdrawSheet({ note, onClose }: { note: OwnedNote; onClose: () 
             : 'Confirm in your wallet...'
           : null
 
+  const modes: { id: Mode; title: string; sub: string; disabled: boolean }[] = [
+    { id: 'relayer', title: 'Relayer', sub: 'No gas needed', disabled: busy || relayerDown },
+    { id: 'self', title: 'My wallet', sub: 'You pay gas', disabled: busy },
+  ]
+
   return (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center"
+          className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: DURATION.backdrop }}
           onClick={() => !busy && onClose()}
         >
-          <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-[rgba(5,6,8,0.3)] backdrop-blur-sm" />
           <motion.section
             role="dialog"
+            aria-modal="true"
             aria-label="Withdraw a note"
-            className="relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl"
-            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)' }}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+            className="frame relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] sm:rounded-[28px]"
+            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.97 }}
+            transition={SPRING.popup}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="h-1" style={{ background: 'linear-gradient(90deg, #5fbeff, #af8ff4, #f05c6b, #ffcd83, #7ef1b3)' }} />
-            <div className="flex items-center justify-between px-5 pt-4">
-              <h3 className="display text-xl font-bold" style={{ color: 'var(--ink)' }}>
-                Withdraw {usdcText(denom)} USDC
-              </h3>
-              <button type="button" aria-label="Close" disabled={busy} onClick={onClose} className="flex size-11 items-center justify-center rounded-full disabled:opacity-40">
+            <div className="flex items-center justify-between px-6 pt-5">
+              <h3 className="font-display text-3xl font-light text-ink">Withdraw {usdcText(denom)} USDC</h3>
+              <motion.button
+                type="button"
+                aria-label="Close"
+                disabled={busy}
+                onClick={onClose}
+                whileHover={{ rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                transition={SPRING.chevron}
+                className="flex size-11 items-center justify-center rounded-full text-ink hover:bg-surface disabled:opacity-40"
+              >
                 <X className="size-5" />
-              </button>
+              </motion.button>
             </div>
 
-            <div className="space-y-4 px-5 pb-6 pt-2">
+            <div className="px-6 pt-4">
+              <Stepper steps={['Details', 'Prove', 'Done']} current={stage === 'done' ? 2 : busy ? 1 : 0} />
+            </div>
+
+            <div className="space-y-4 px-6 pb-6 pt-6">
               {stage === 'done' && txHash ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--success)' }}>
-                    <Check className="size-5" /> Withdrawn to {destination.slice(0, 6)}...{destination.slice(-4)}
-                  </div>
-                  <a className="mono inline-flex items-center gap-1 text-xs" style={{ color: 'var(--accent-hover)' }} href={buildTxExplorerUrl(CHAIN_ID, txHash)} target="_blank" rel="noopener noreferrer">
-                    {shortHash(txHash)} <ExternalLink className="size-3" />
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <SuccessMark />
+                  <p className="text-sm font-semibold text-ink">
+                    Withdrawn to {destination.slice(0, 6)}...{destination.slice(-4)}
+                  </p>
+                  <a className="mono inline-flex min-h-8 items-center gap-1 text-xs text-ink underline-offset-4 hover:underline" href={buildTxExplorerUrl(CHAIN_ID, txHash)} target="_blank" rel="noopener noreferrer">
+                    {shortHash(txHash)} <ExternalLink className="size-3" aria-hidden />
                   </a>
-                  <button className="btn-primary" onClick={onClose}>
+                  <button className="btn-primary mt-2 w-full" onClick={onClose}>
                     Done
                   </button>
                 </div>
               ) : (
                 <>
                   <div>
-                    <label className="block text-xs font-semibold" style={{ color: 'var(--ink-2)' }} htmlFor="destination">
+                    <label className="block text-[11px] text-ink-2" htmlFor="destination">
                       Destination address
                     </label>
                     <input
                       id="destination"
-                      className="field mono mt-1.5 text-xs"
+                      className="field mono mt-1 text-xs"
                       placeholder="0x..."
                       value={destination}
                       onChange={(e) => setDestination(e.target.value.trim())}
                       disabled={busy}
                       autoComplete="off"
                       spellCheck={false}
+                      autoFocus
+                      aria-invalid={!!destination && !validDestination}
                     />
-                    <p className="mt-1 text-xs" style={{ color: destination && !validDestination ? 'var(--danger)' : 'var(--muted)' }}>
+                    <p className={`mt-1 text-[11px] ${destination && !validDestination ? 'text-danger' : 'text-ink-2'}`}>
                       {destination && !validDestination ? 'Not a valid address.' : 'Use a fresh address that no one links to you.'}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Who submits the transaction">
-                    <button type="button" role="radio" aria-checked={mode === 'relayer'} disabled={busy || relayerDown} onClick={() => setMode('relayer')} className="glass-inner min-h-14 rounded-2xl p-3 text-left disabled:opacity-40" style={{ borderColor: mode === 'relayer' ? 'var(--border-strong)' : undefined }}>
-                      <span className="block text-sm font-semibold">Relayer</span>
-                      <span className="block text-xs" style={{ color: 'var(--muted)' }}>No gas needed</span>
-                    </button>
-                    <button type="button" role="radio" aria-checked={mode === 'self'} disabled={busy} onClick={() => setMode('self')} className="glass-inner min-h-14 rounded-2xl p-3 text-left disabled:opacity-40" style={{ borderColor: mode === 'self' ? 'var(--border-strong)' : undefined }}>
-                      <span className="block text-sm font-semibold">My wallet</span>
-                      <span className="block text-xs" style={{ color: 'var(--muted)' }}>You pay gas</span>
-                    </button>
+                    {modes.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={mode === m.id}
+                        disabled={m.disabled}
+                        onClick={() => setMode(m.id)}
+                        className={`relative min-h-14 rounded-2xl border p-3 text-left transition-colors disabled:opacity-40 ${mode === m.id ? 'border-ink' : 'border-line hover:border-ink-2'}`}
+                      >
+                        {mode === m.id && (
+                          <motion.span layoutId="withdraw-mode" className="absolute inset-0 rounded-2xl bg-surface" transition={SPRING.snappy} aria-hidden />
+                        )}
+                        <span className="relative block text-sm font-semibold text-ink">{m.title}</span>
+                        <span className="relative block text-[11px] text-ink-2">{m.sub}</span>
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="glass-inner rounded-2xl px-4 py-2">
+                  <div className="panel rounded-2xl px-4 py-2">
                     <Row label="Note value" value={`${usdcText(denom)} USDC`} />
                     <Row label={mode === 'relayer' ? 'Relayer fee' : 'Fee'} value={`${usdcText(fee)} USDC`} />
                     <Row label="You receive" value={`${usdcText(receive)} USDC`} strong />
@@ -233,15 +271,17 @@ export function WithdrawSheet({ note, onClose }: { note: OwnedNote; onClose: () 
                   )}
                   {error && <Notice tone="error">{error}</Notice>}
 
-                  <button className="btn-primary" disabled={!canStart} onClick={() => void withdraw()}>
+                  <button className="btn-primary w-full" disabled={!canStart} onClick={() => void withdraw()}>
                     {busy ? (
-                      <span className="flex items-center justify-center gap-2">
+                      <>
                         <Spinner /> {stageLabel}
-                      </span>
+                      </>
                     ) : mode === 'self' && wrongChain ? (
                       'Switch to Arc Testnet and withdraw'
                     ) : (
-                      'Withdraw'
+                      <>
+                        Withdraw <ArrowRight className="btn-arrow size-4" aria-hidden />
+                      </>
                     )}
                   </button>
                 </>

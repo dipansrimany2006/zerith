@@ -1,145 +1,251 @@
-import { useState } from 'react'
+/* ─────────────────────────────────────────────────────────
+ * PAGE ENTRANCE STORYBOARD
+ *
+ * The frame and the dark rail are the static shell: visible at once.
+ *
+ *    0ms   frame + rail shell visible
+ *    0ms   rail icons rise in (40ms apart)
+ *   80ms   wallets column slides in from the left
+ *  200ms   wallet rows and pool bars stagger in (60ms apart)
+ *  260ms   main panel slides in from the right
+ *
+ * After mount: switching tabs cross-fades the panel (~200ms);
+ * the active rail marker springs between icons.
+ * ───────────────────────────────────────────────────────── */
+import { useEffect, useState } from 'react'
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { ConnectKitButton } from 'connectkit'
 import { useSwitchChain } from 'wagmi'
-import { ShieldCheck } from 'lucide-react'
+import { ArrowDownToLine, ArrowLeftRight, ArrowRight, FileCheck2, Lock, type LucideIcon } from 'lucide-react'
 import { CHAIN_ID, POOL_ADDRESS } from '@/lib/pool'
 import { ShieldedProvider, useShielded } from '@/lib/shielded-context'
 import { useChainGuard } from '@/lib/use-chain-guard'
-import { AddressCard } from '@/components/AddressCard'
+import { DURATION, SPRING, STAGGER } from '@/lib/motion'
 import { Disclosure } from '@/components/Disclosure'
 import { Inbox } from '@/components/Inbox'
-import { PrivacyMeter } from '@/components/PrivacyMeter'
 import { SendPrivate } from '@/components/SendPrivate'
 import { UnlockCard } from '@/components/UnlockCard'
-import { Card, Notice } from '@/components/ui'
+import { Wallets } from '@/components/Wallets'
+import { ZerithMark } from '@/components/Logo'
+import { Notice, Stepper } from '@/components/ui'
 
-type Tab = 'send' | 'receive' | 'privacy'
+type Tab = 'send' | 'receive' | 'audit'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'send', label: 'Send' },
-  { id: 'receive', label: 'Receive' },
-  { id: 'privacy', label: 'Privacy' },
+const NAV: { id: Tab; label: string; icon: LucideIcon }[] = [
+  { id: 'send', label: 'Send', icon: ArrowLeftRight },
+  { id: 'receive', label: 'Receive', icon: ArrowDownToLine },
+  { id: 'audit', label: 'Audit', icon: FileCheck2 },
 ]
 
-function Header() {
+const TIMING = {
+  wallets: 80, // ms — wallets column
+  rows: 200, // ms — wallet rows and pool bars
+  panel: 260, // ms — main panel
+}
+
+const WALLETS = { offsetX: -24, spring: SPRING.smooth }
+const PANEL = { offsetX: 24, spring: SPRING.smooth }
+
+function useEntranceStage() {
+  const [stage, setStage] = useState(0)
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setStage((s) => Math.max(s, 1)), TIMING.wallets),
+      setTimeout(() => setStage((s) => Math.max(s, 2)), TIMING.rows),
+      setTimeout(() => setStage((s) => Math.max(s, 3)), TIMING.panel),
+    ]
+    return () => timers.forEach(clearTimeout)
+  }, [])
+  return stage
+}
+
+function Rail({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+  const { keys, lock } = useShielded()
   return (
-    <header className="mb-4 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
-        <div className="flex size-9 items-center justify-center rounded-xl" style={{ background: 'var(--accent)' }}>
-          <ShieldCheck className="size-5 text-white" />
-        </div>
-        <div className="leading-tight">
-          <span className="display block text-lg font-bold" style={{ color: 'var(--ink)' }}>
-            Shielded USDC
-          </span>
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--muted)' }}>
-            Arc Testnet
-          </span>
-        </div>
+    <nav aria-label="Sections" className="rail flex items-center gap-1 rounded-[22px] bg-ink p-2 lg:h-full lg:flex-col lg:gap-2 lg:rounded-[28px] lg:py-6">
+      <span className="flex size-12 shrink-0 items-center justify-center text-canvas" role="img" aria-label="Zerith" title="Zerith">
+        <ZerithMark className="size-8" />
+      </span>
+      <div className="flex flex-1 items-center justify-center gap-1 lg:flex-col lg:gap-3">
+        {NAV.map((item, i) => {
+          const active = tab === item.id
+          const Icon = item.icon
+          return (
+            <motion.button
+              key={item.id}
+              type="button"
+              onClick={() => onChange(item.id)}
+              aria-current={active ? 'page' : undefined}
+              aria-label={item.label}
+              title={item.label}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ ...SPRING.snappy, delay: i * STAGGER.tight }}
+              className={`group relative flex h-12 min-w-12 items-center justify-center gap-2 rounded-2xl px-3 transition-colors lg:w-12 lg:px-0 ${active ? 'text-canvas' : 'text-muted hover:text-line'}`}
+            >
+              {active && (
+                <motion.span layoutId="rail-active" className="absolute inset-0 rounded-2xl bg-[var(--rail-active)]" transition={SPRING.snappy} aria-hidden />
+              )}
+              <Icon className="relative size-5 transition-transform duration-200 group-hover:-translate-y-0.5" aria-hidden />
+              <span className="relative hidden text-xs font-semibold sm:inline lg:hidden">{item.label}</span>
+            </motion.button>
+          )
+        })}
       </div>
-      <ConnectKitButton showBalance={false} />
-    </header>
+      {keys ? (
+        <motion.button
+          type="button"
+          onClick={lock}
+          aria-label="Lock keys"
+          title="Lock keys"
+          whileHover={{ rotate: -8 }}
+          whileTap={{ scale: 0.9 }}
+          transition={SPRING.chevron}
+          className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-muted transition-colors hover:text-canvas"
+        >
+          <Lock className="size-5" aria-hidden />
+        </motion.button>
+      ) : (
+        <span className="size-12 shrink-0" aria-hidden />
+      )}
+    </nav>
   )
 }
 
-function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+const LANDING_POINTS = [
+  { title: 'Fixed notes', sub: '0.10 · 1 · 10 USDC' },
+  { title: 'Private proof', sub: 'Built in your browser' },
+  { title: 'No gas to receive', sub: 'Relayer pays for you' },
+]
+
+function Landing() {
   return (
-    <div className="glass-pill mb-4 grid grid-cols-3 gap-1 rounded-2xl p-1" role="tablist" aria-label="Sections">
-      {TABS.map((t) => (
-        <button
-          key={t.id}
-          role="tab"
-          aria-selected={tab === t.id}
-          onClick={() => onChange(t.id)}
-          className="min-h-11 rounded-xl text-sm font-semibold transition-colors"
-          style={{
-            background: tab === t.id ? 'var(--accent)' : 'transparent',
-            color: tab === t.id ? '#fff' : 'var(--ink-2)',
-          }}
-        >
-          {t.label}
-        </button>
-      ))}
+    <div className="flex h-full flex-col">
+      <Stepper steps={['Connect', 'Unlock', 'Send']} current={0} />
+      <div className="flex flex-1 flex-col justify-center py-10">
+        <div className="mb-6 flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-ink text-canvas">
+            <ZerithMark className="size-7" />
+          </span>
+          <span className="font-display text-2xl font-medium uppercase tracking-[0.18em] text-ink">Zerith</span>
+        </div>
+        <h2 className="max-w-lg font-display text-5xl font-light leading-[1.02] text-ink text-balance">Pay in USDC without a public trail.</h2>
+        <p className="mt-4 max-w-md text-sm leading-relaxed text-ink-2 text-pretty">
+          Send USDC into a shared pool and let the recipient withdraw with a zero-knowledge proof. On the public chain,
+          nobody can tell which deposit paid which withdrawal.
+        </p>
+        <ul className="mt-8 grid max-w-lg gap-3 sm:grid-cols-3">
+          {LANDING_POINTS.map((p, i) => (
+            <motion.li
+              key={p.title}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...SPRING.smooth, delay: 0.3 + i * STAGGER.normal }}
+              className="box rounded-2xl p-4"
+            >
+              <p className="text-sm font-semibold text-ink">{p.title}</p>
+              <p className="text-[11px] text-ink-2">{p.sub}</p>
+            </motion.li>
+          ))}
+        </ul>
+        <div className="mt-8">
+          <ConnectKitButton.Custom>
+            {({ show, isConnecting }) => (
+              <button className="btn-primary" onClick={show} disabled={isConnecting}>
+                {isConnecting ? (
+                  'Connecting...'
+                ) : (
+                  <>
+                    Connect wallet <ArrowRight className="btn-arrow size-4" aria-hidden />
+                  </>
+                )}
+              </button>
+            )}
+          </ConnectKitButton.Custom>
+        </div>
+      </div>
     </div>
   )
 }
 
-function Landing() {
+function TabContent({ tab }: { tab: Tab }) {
+  if (tab === 'send') return <SendPrivate />
+  if (tab === 'receive') return <Inbox />
   return (
-    <Card>
-      <h1 className="display text-4xl font-bold leading-[1.05] text-balance" style={{ color: 'var(--ink)' }}>
-        Pay in USDC without a public trail.
-      </h1>
-      <p className="mt-3 text-sm leading-relaxed text-pretty" style={{ color: 'var(--muted)' }}>
-        Send USDC into a shared pool and let the recipient withdraw with a zero-knowledge proof. On the public chain, nobody can tell which deposit paid which withdrawal.
-      </p>
-      <div className="mt-5">
-        <ConnectKitButton.Custom>
-          {({ show, isConnecting }) => (
-            <button className="btn-primary" onClick={show} disabled={isConnecting}>
-              {isConnecting ? 'Connecting...' : 'Connect wallet'}
-            </button>
-          )}
-        </ConnectKitButton.Custom>
-      </div>
-    </Card>
+    <div>
+      <h2 className="font-display text-4xl font-light text-ink">Audit</h2>
+      <p className="mb-6 mt-1 text-sm text-ink-2">Prove your payments to someone else, without giving up control.</p>
+      <Disclosure />
+    </div>
   )
 }
 
-function Main() {
+function Panel({ tab }: { tab: Tab }) {
   const { isConnected, wrongChain } = useChainGuard()
   const { switchChain, isPending } = useSwitchChain()
   const { keys } = useShielded()
-  const [tab, setTab] = useState<Tab>('send')
 
   if (!POOL_ADDRESS) {
     return <Notice tone="error">The pool is not configured. Set VITE_POOL_ADDRESS in .env and restart the app.</Notice>
   }
-
-  if (!isConnected) {
-    return (
-      <div className="space-y-3">
-        <Landing />
-        <PrivacyMeter />
-      </div>
-    )
-  }
+  if (!isConnected) return <Landing />
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-1 flex-col">
       {wrongChain && (
-        <Card>
-          <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
-            Your wallet is on another network.
-          </p>
-          <button className="btn-primary mt-3" disabled={isPending} onClick={() => switchChain({ chainId: CHAIN_ID })}>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warn bg-canvas p-4">
+          <p className="text-sm font-semibold text-ink">Your wallet is on another network.</p>
+          <button className="btn-ghost" disabled={isPending} onClick={() => switchChain({ chainId: CHAIN_ID })}>
             Switch to Arc Testnet
           </button>
-        </Card>
+        </div>
       )}
-      <Tabs tab={tab} onChange={setTab} />
-      {!keys ? (
-        tab === 'privacy' ? (
-          <>
-            <PrivacyMeter />
-            <UnlockCard />
-          </>
-        ) : (
-          <UnlockCard />
-        )
-      ) : tab === 'send' ? (
-        <SendPrivate />
-      ) : tab === 'receive' ? (
-        <>
-          <AddressCard />
-          <Inbox />
-        </>
-      ) : (
-        <>
-          <PrivacyMeter />
-          <Disclosure />
-        </>
-      )}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={keys ? tab : 'locked'}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: DURATION.crossFade }}
+          className="flex flex-1 flex-col"
+        >
+          {keys ? <TabContent tab={tab} /> : <UnlockCard />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function Shell() {
+  const [tab, setTab] = useState<Tab>('send')
+  const stage = useEntranceStage()
+
+  return (
+    <div className="min-h-dvh bg-canvas">
+      <div className="flex min-h-dvh flex-col gap-4 p-3 sm:p-4 lg:grid lg:grid-cols-[88px_320px_minmax(0,1fr)] lg:gap-10 lg:p-5">
+        <div className="sticky top-3 z-20 lg:top-5 lg:h-[calc(100dvh-2.5rem)]">
+          <Rail tab={tab} onChange={setTab} />
+        </div>
+
+        <motion.aside
+          className="order-3 px-2 pb-6 lg:order-none lg:px-0 lg:py-6"
+          initial={{ opacity: 0, x: WALLETS.offsetX }}
+          animate={stage >= 1 ? { opacity: 1, x: 0 } : { opacity: 0, x: WALLETS.offsetX }}
+          transition={WALLETS.spring}
+        >
+          <Wallets show={stage >= 2} />
+        </motion.aside>
+
+        <motion.main
+          className="panel order-2 flex min-h-[560px] flex-col rounded-[28px] p-5 sm:p-7 lg:order-none lg:p-8"
+          initial={{ opacity: 0, x: PANEL.offsetX }}
+          animate={stage >= 3 ? { opacity: 1, x: 0 } : { opacity: 0, x: PANEL.offsetX }}
+          transition={PANEL.spring}
+        >
+          <Panel tab={tab} />
+        </motion.main>
+      </div>
     </div>
   )
 }
@@ -147,21 +253,9 @@ function Main() {
 export default function App() {
   return (
     <ShieldedProvider>
-      <div className="relative min-h-dvh overflow-hidden">
-        <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
-          <div style={{ position: 'absolute', top: '8%', left: '5%', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(133,177,237,0.22) 0%, transparent 70%)', filter: 'blur(60px)' }} />
-          <div style={{ position: 'absolute', bottom: '8%', right: '8%', width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,205,131,0.2) 0%, transparent 70%)', filter: 'blur(58px)' }} />
-        </div>
-        <div className="relative z-10 mx-auto max-w-md px-4 pb-24 pt-6">
-          <Header />
-          <div className="mb-4">
-            <Notice tone="warn">
-              Testnet only and unaudited. The proof setup is for development, so do not use real funds. Need test USDC? Use Get test USDC in the Arc Studio sidebar.
-            </Notice>
-          </div>
-          <Main />
-        </div>
-      </div>
+      <MotionConfig reducedMotion="user">
+        <Shell />
+      </MotionConfig>
     </ShieldedProvider>
   )
 }

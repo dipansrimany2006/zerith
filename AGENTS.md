@@ -1,6 +1,9 @@
 # Project memory
 
-Shielded USDC: private USDC payments on Arc Testnet (chain ID 5042002). Built with Arc Studio.
+Zerith (formerly Shielded USDC): private USDC payments on Arc Testnet (chain ID 5042002). Built with Arc Studio.
+- Logo: `assets/zerith.png` (source), `public/zerith.svg` (favicon), `src/components/Logo.tsx` (in-app mark).
+- The strings "Shielded USDC" in `KEY_DERIVATION_MESSAGE` (src/lib/shielded-keys.ts) and the report message (Disclosure.tsx) are protocol strings: never rename them, or existing keys and signed reports break.
+- Deploy: Cloudflare Worker `zerith` (`bun run cf:deploy`, config in wrangler.jsonc). The relayer key is a Worker secret.
 
 ## Deployed contracts (Arc Testnet)
 - ShieldedPool: 0xfb73fe8487910611af9039bf0b72eba0a15770b5 (deploy tx 0x2fa82ee45b1e8f8955a7b62b255a269cd2258902bffc232337df65d7bc7cc291, block 69744668)

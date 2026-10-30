@@ -70,10 +70,26 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider>
+        <ConnectKitProvider
+          mode="light"
+          customTheme={{
+            '--ck-font-family': 'Barlow, system-ui, sans-serif',
+            '--ck-border-radius': '20px',
+            '--ck-primary-button-border-radius': '12px',
+            '--ck-body-color': '#050608',
+            '--ck-body-color-muted': '#64656c',
+            '--ck-body-background': '#ffffff',
+            '--ck-body-background-secondary': '#f4f4f9',
+            '--ck-accent-color': '#050608',
+            '--ck-accent-text-color': '#ffffff',
+          }}
+        >
           <App />
           <StudioWatermark />
-          <Toaster position="top-center" />
+          <Toaster
+            position="top-center"
+            toastOptions={{ style: { fontFamily: 'Barlow, system-ui, sans-serif', borderRadius: 14, color: '#050608', borderColor: '#c4c4cd' } }}
+          />
         </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

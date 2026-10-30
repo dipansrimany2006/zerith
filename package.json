@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "build": "vite build",
+    "start": "bun run ./server/relayer.ts",
+    "cf:dev": "vite build && wrangler dev",
+    "cf:deploy": "vite build && wrangler deploy",
     "relayer": "bun run ./server/relayer.ts",
     "zk:setup": "bash ./scripts/zk-setup.sh",
     "deploy:self": "bun run ./scripts/self-deploy.ts",
@@ -49,6 +53,7 @@
     "viem": "2.57.5"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261030.1",
     "@types/node": "^24.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
@@ -60,6 +65,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "~7.0.2",
     "vite": "^6.0.5",
-    "vite-plugin-node-polyfills": "^0.22.0"
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "wrangler": "^4.156.0"
   }
 }

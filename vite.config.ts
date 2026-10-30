@@ -38,6 +38,12 @@ export default defineConfig({
     allowedHosts: true,
     cors: true,
     proxy: {
+      // Same-origin path to the Arc Testnet RPC, so browser shields and extensions cannot block it.
+      '/rpc': {
+        target: 'https://rpc.testnet.arc.io',
+        changeOrigin: true,
+        rewrite: () => '/',
+      },
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,

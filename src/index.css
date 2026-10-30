@@ -3,23 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --bg: #ffffff;
-  --bg-gradient: linear-gradient(180deg, #f9f9fc 0%, #fffcf7 52%, #fbf7f2 100%);
-  --surface: rgba(255, 255, 255, 0.72);
-  --surface-strong: rgba(255, 255, 255, 0.9);
-  --surface-muted: #f5f5f8;
-  --ink: #122d45;
-  --ink-2: #334155;
-  --muted: #6b6580;
-  --subtle: #8a849c;
-  --border: rgba(18, 45, 69, 0.12);
-  --border-strong: rgba(25, 53, 77, 0.5);
-  --accent: #122d45;
-  --accent-hover: #1061a6;
-  --focus: #85b1ed;
-  --success: #1a8047;
-  --danger: #ba2b4c;
-  --warn: #9a6a12;
+  /* Brand palette */
+  --bg: #e9e9f4;
+  --line: #c4c4cd;
+  --ink: #050608;
+  --ink-2: #64656c;
+  /* --muted is 3.2:1 on --bg: icons, placeholders and large numerals only, never small body text. */
+  --muted: #807f8d;
+
+  /* Derived from the palette */
+  --canvas: #ffffff;
+  --surface: #f4f4f9; /* --bg pulled toward white, for inset panels */
+  --rail-active: rgba(233, 233, 244, 0.14); /* --bg over the dark rail */
+  --shadow-soft: 0 1px 2px rgba(5, 6, 8, 0.04), 0 10px 28px -14px rgba(5, 6, 8, 0.16);
+
+  /* Status colors, kept muted so they sit inside the monochrome palette */
+  --success: #2f7a55;
+  --danger: #b4364f;
+  --warn: #8a6416;
+
+  color-scheme: light;
 }
 
 * {
@@ -28,96 +31,176 @@
 
 body {
   margin: 0;
-  font-family: 'DM Sans', sans-serif;
   min-height: 100dvh;
+  font-family: 'Barlow', system-ui, sans-serif;
   color: var(--ink);
-  background: var(--bg-gradient);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
-.display {
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: -0.03em;
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.rail :focus-visible {
+  outline-color: var(--bg);
 }
 
-.mono {
-  font-family: 'JetBrains Mono', Menlo, monospace;
+/* The white "screen" that holds the whole app, like the device in the reference. */
+.frame {
+  background: var(--canvas);
+  box-shadow: 0 40px 90px -40px rgba(5, 6, 8, 0.28), 0 0 0 1px rgba(5, 6, 8, 0.04);
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.64);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.68);
-  box-shadow: 0 8px 32px rgba(18, 45, 69, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+.panel {
+  background: var(--surface);
 }
 
-.glass-inner {
-  background: rgba(255, 255, 255, 0.46);
-  border: 1px solid rgba(18, 45, 69, 0.08);
-}
-
-.glass-pill {
-  background: rgba(255, 255, 255, 0.58);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.66);
+.box {
+  background: var(--canvas);
+  box-shadow: var(--shadow-soft);
 }
 
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   min-height: 48px;
-  width: 100%;
-  border-radius: 1rem;
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.875rem;
+  padding: 0 1.5rem;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--canvas);
+  font-size: 0.9rem;
   font-weight: 600;
-  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+  letter-spacing: 0.01em;
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.15s ease;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -12px rgba(5, 6, 8, 0.55);
 }
 .btn-primary:active:not(:disabled) {
-  transform: scale(0.99);
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
 }
 .btn-primary:disabled {
   cursor: not-allowed;
-  opacity: 0.4;
+  opacity: 0.3;
+}
+.btn-arrow {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-primary:hover:not(:disabled) .btn-arrow {
+  transform: translateX(3px);
 }
 
 .btn-ghost {
-  min-height: 44px;
-  border-radius: 0.875rem;
-  padding: 0 1rem;
-  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.58);
-  border: 1px solid var(--border);
-  transition: background 0.15s ease;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--ink);
+}
+.btn-ghost:active:not(:disabled) {
+  transform: scale(0.97);
 }
 .btn-ghost:disabled {
   cursor: not-allowed;
-  opacity: 0.4;
+  opacity: 0.35;
 }
 
 .field {
   width: 100%;
-  min-height: 48px;
-  border-radius: 0.875rem;
-  padding: 0 0.875rem;
-  font-size: 0.875rem;
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 0 0.85rem;
+  font-size: 0.9rem;
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid transparent;
   outline: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.field::placeholder {
+  color: var(--muted);
+}
+/* On the grey panel, fields sit on white so they stay visible. */
+.panel .field {
+  background: var(--canvas);
+  border-color: var(--line);
 }
 .field:focus {
-  border-color: var(--focus);
-  box-shadow: 0 0 0 3px rgba(133, 177, 237, 0.3);
+  background: var(--canvas);
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(5, 6, 8, 0.06);
+}
+
+/* Underlined amount field from the reference; the ink line grows from the left on focus. */
+.line-field {
+  position: relative;
+  border-bottom: 1px solid var(--line);
+}
+.line-field::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.line-field:focus-within::after {
+  transform: scaleX(1);
+}
+/* The growing underline is the focus indicator for these inputs. */
+.line-field input:focus-visible {
+  outline: none;
+}
+
+.row-hover {
+  transition: background 0.18s ease;
+}
+.row-hover:hover {
+  background: var(--surface);
+}
+
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--bg) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

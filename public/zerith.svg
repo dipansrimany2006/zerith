@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <rect width="500" height="500" rx="110" fill="#141414"/>
+  <path d="M144 178v-36h36M356 178v-36h-36M144 322v36h36M356 322v36h-36" fill="none" stroke="#ededed" stroke-width="14" stroke-linecap="square" transform="translate(250 250) scale(1.3) translate(-250 -250)"/>
+  <g transform="translate(250 250) scale(1.3) translate(-250 -250)">
+    <path d="M162 250C205 190 300 190 343 250C300 310 205 310 162 250Z" fill="#ededed"/>
+    <ellipse cx="251" cy="250" rx="40" ry="41" fill="#141414"/>
+  </g>
+</svg>
