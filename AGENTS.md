@@ -22,6 +22,7 @@ Zerith (formerly Shielded USDC): private USDC payments on Arc Testnet (chain ID 
 
 ## Decisions
 - Large payments: the Send screen splits an amount into the largest allowed notes and sends them with `depositMany` in batches of 10 (one transaction per batch), up to 50 notes per payment. A 10-note batch costs roughly 8.7M gas; Arc Testnet's block gas limit is 30M.
+- Withdraw all: several notes go out in one atomic transaction per batch of up to 20, through Multicall3 (`0xcA11bde05977b3631167028862bE2a173976CA11`, deployed on Arc Testnet) calling `aggregate3` with `allowFailure: false`. This needs no pool change: `withdraw` never reads `msg.sender`. The relayer route is `POST /relay-many`; its fee per batch is RELAYER_MIN_FEE + RELAYER_EXTRA_NOTE_FEE (default 0.01) for each note after the first, split across the batch's proofs (largest notes first). A withdrawal costs about 0.31-0.35M gas.
 - Testnet only, unaudited, dev trusted setup. Arc native privacy is on the roadmap; the app logic is kept separate so it can be swapped later.
 - Withdrawals are never pausable. Pause only stops deposits.
 - Never print or commit `.env`, the relayer key, or any sender key.

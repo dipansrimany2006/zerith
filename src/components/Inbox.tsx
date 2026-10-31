@@ -11,7 +11,7 @@ import { WithdrawSheet } from '@/components/WithdrawSheet'
 export function Inbox() {
   const { denominations, refresh, refreshing, loadedOnce, error } = useShielded()
   const { unspent, spent, total } = useShieldedBalance()
-  const [selected, setSelected] = useState<OwnedNote | null>(null)
+  const [selected, setSelected] = useState<OwnedNote[] | null>(null)
 
   return (
     <div className="flex flex-col">
@@ -41,7 +41,21 @@ export function Inbox() {
       </div>
 
       <div className="mt-8">
-        <SectionLabel>Received</SectionLabel>
+        <div className="flex items-center justify-between gap-3">
+          <SectionLabel>Received</SectionLabel>
+          {unspent.length > 1 && (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={SPRING.smooth}
+              className="btn-primary -mt-3 min-h-10 px-4 text-[0.82rem]"
+              onClick={() => setSelected(unspent)}
+            >
+              <ArrowDownToLine className="size-4" aria-hidden /> Withdraw all · {usdcText(total)} USDC
+            </motion.button>
+          )}
+        </div>
         {error && <Notice tone="error">Could not scan the pool: {error}. Try Scan again.</Notice>}
         {!loadedOnce && !error && (
           <ul className="space-y-2" aria-label="Scanning the pool">
@@ -84,7 +98,7 @@ export function Inbox() {
                   {timeAgo(n.timestamp)}
                 </p>
               </div>
-              <button type="button" className="btn-ghost" onClick={() => setSelected(n)}>
+              <button type="button" className="btn-ghost" onClick={() => setSelected([n])}>
                 <ArrowDownToLine className="size-4" aria-hidden /> Withdraw
               </button>
             </motion.li>
@@ -109,7 +123,7 @@ export function Inbox() {
       )}
 
       <AnimatePresence>
-        {selected && <WithdrawSheet key={selected.commitment.toString()} note={selected} onClose={() => setSelected(null)} />}
+        {selected && <WithdrawSheet key={selected.map((n) => n.commitment.toString()).join()} notes={selected} onClose={() => setSelected(null)} />}
       </AnimatePresence>
     </div>
   )

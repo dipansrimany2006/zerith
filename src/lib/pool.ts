@@ -20,6 +20,21 @@ export const TREE_LEVELS = 20
 /** Notes the pool accepts in one depositMany call (matches ShieldedPool.MAX_BATCH). */
 export const MAX_BATCH = 10
 
+/**
+ * Multicall3 (same address on most EVM chains, deployed on Arc Testnet). "Withdraw all" sends many
+ * pool withdrawals through it as one atomic transaction; the pool's withdraw does not depend on the caller.
+ */
+export const MULTICALL3: Address = '0xcA11bde05977b3631167028862bE2a173976CA11'
+
+export const multicallAbi = parseAbi([
+  'struct Call3 { address target; bool allowFailure; bytes callData; }',
+  'struct Result { bool success; bytes returnData; }',
+  'function aggregate3(Call3[] calls) payable returns (Result[] returnData)',
+])
+
+/** Notes per "Withdraw all" transaction when the wallet submits it (matches the relayer's batch size). */
+export const MAX_WITHDRAW_BATCH = 20
+
 export const poolAbi = parseAbi([
   'function deposit(uint8 denomIndex, bytes32 commitment, bytes32 ephemeralPub, bytes ciphertext)',
   'function depositMany(uint8[] denomIndices, bytes32[] commitments, bytes32[] ephemeralPubs, bytes[] ciphertexts)',

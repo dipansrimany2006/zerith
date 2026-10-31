@@ -6,7 +6,18 @@
  * so this is what keeps withdrawals in order (no nonce collisions) and the rate limit global.
  */
 import { DurableObject } from 'cloudflare:workers'
-import { DEFAULT_MIN_FEE, PUBLIC_RPC, createRateLimiter, createRelayer, handleRelay, json, proxyRpc } from '../server/relay-core'
+import {
+  DEFAULT_EXTRA_NOTE_FEE,
+  DEFAULT_MIN_FEE,
+  PUBLIC_RPC,
+  createRateLimiter,
+  createRelayer,
+  handleRelay,
+  handleRelayMany,
+  json,
+  proxyRpc,
+  relayerInfo,
+} from '../server/relay-core'
 
 interface Env {
   ASSETS: Fetcher
@@ -14,6 +25,7 @@ interface Env {
   POOL_ADDRESS: `0x${string}`
   RELAYER_PRIVATE_KEY: `0x${string}`
   RELAYER_MIN_FEE?: string
+  RELAYER_EXTRA_NOTE_FEE?: string
 }
 
 export class Relayer extends DurableObject<Env> {
@@ -22,20 +34,19 @@ export class Relayer extends DurableObject<Env> {
     pool: this.env.POOL_ADDRESS,
     rpcUrl: PUBLIC_RPC,
     minFee: this.env.RELAYER_MIN_FEE ? BigInt(this.env.RELAYER_MIN_FEE) : DEFAULT_MIN_FEE,
+    extraFee: this.env.RELAYER_EXTRA_NOTE_FEE ? BigInt(this.env.RELAYER_EXTRA_NOTE_FEE) : DEFAULT_EXTRA_NOTE_FEE,
   })
   private limited = createRateLimiter()
 
   async fetch(req: Request): Promise<Response> {
     const { pathname } = new URL(req.url)
 
-    if (req.method === 'GET' && pathname === '/api/info') {
-      return json({ relayer: this.relayer.address, minFee: this.relayer.minFee.toString(), pool: this.relayer.pool })
-    }
+    if (req.method === 'GET' && pathname === '/api/info') return json(relayerInfo(this.relayer))
 
-    if (req.method === 'POST' && pathname === '/api/relay') {
+    if (req.method === 'POST' && (pathname === '/api/relay' || pathname === '/api/relay-many')) {
       const ip = req.headers.get('cf-connecting-ip') || 'unknown'
       if (this.limited(ip)) return json({ error: 'Too many requests. Try again in a minute.' }, 429)
-      return handleRelay(this.relayer, req)
+      return pathname === '/api/relay' ? handleRelay(this.relayer, req) : handleRelayMany(this.relayer, req)
     }
 
     return json({ error: 'Not found' }, 404)
