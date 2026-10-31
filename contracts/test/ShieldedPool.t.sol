@@ -401,13 +401,11 @@ contract ShieldedPoolTest is ShieldedPoolTestBase {
     function test_Withdraw_PublicSignalsOrderAndProofForwarded() public {
         bytes32 root = _fund(1, 1);
         uint256 fee = 3e6;
-        pA = [uint256(11), 12];
-        pB = [[uint256(21), 22], [uint256(23), 24]];
-        pC = [uint256(31), 32];
+        for (uint256 i = 0; i < 24; ++i) proof[i] = 11 + i;
         uint256[5] memory sig = [uint256(root), uint256(_n(1)), uint256(uint160(bob)), uint256(uint160(relayer)), fee];
 
         // exact calldata the verifier must receive
-        vm.expectCall(address(verifier), abi.encodeCall(IVerifier.verifyProof, (pA, pB, pC, sig)));
+        vm.expectCall(address(verifier), abi.encodeCall(IVerifier.verifyProof, (proof, sig)));
         verifier.setExpected(sig);
         _withdraw(1, root, _n(1), bob, relayer, fee);
         assertEq(usdc.balanceOf(bob), 10e6 - fee);

@@ -23,9 +23,7 @@ abstract contract ShieldedPoolTestBase is Test {
 
     uint256[] internal denoms;
 
-    uint256[2] internal pA;
-    uint256[2][2] internal pB;
-    uint256[2] internal pC;
+    uint256[24] internal proof;
 
     function setUp() public virtual {
         poseidon = deployCode("PoseidonT3.sol:PoseidonT3");
@@ -64,7 +62,7 @@ abstract contract ShieldedPoolTestBase is Test {
         address relayer_,
         uint256 fee
     ) internal {
-        pool.withdraw(idx, pA, pB, pC, root, nullifier, payable(recipient), relayer_, fee);
+        pool.withdraw(idx, proof, root, nullifier, payable(recipient), relayer_, fee);
     }
 
     function _hash(uint256 a, uint256 b) internal view returns (uint256) {

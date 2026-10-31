@@ -48,10 +48,8 @@ contract ShieldedPoolHandler is Test {
         if (n.spent) return;
         uint256 amount = pool.denominations(n.idx);
         uint256 fee = bound(feeSeed, 0, amount);
-        uint256[2] memory a;
-        uint256[2][2] memory b;
-        uint256[2] memory c;
-        pool.withdraw(n.idx, a, b, c, pool.getLastRoot(n.idx), n.nullifier, payable(recipient), relayer, fee);
+        uint256[24] memory proof;
+        pool.withdraw(n.idx, proof, pool.getLastRoot(n.idx), n.nullifier, payable(recipient), relayer, fee);
         n.spent = true;
         ghostUnspent -= amount;
     }

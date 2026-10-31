@@ -45,7 +45,6 @@ const batchNotes = batchIndexes.map(() => createNote(decoded, senderKeys.viewPub
 const note = batchNotes[0]
 const approveHash = await wallet.writeContract({ address: USDC_ADDRESS, abi: erc20Abi, functionName: 'approve', args: [POOL_ADDRESS, total] })
 await client.waitForTransactionReceipt({ hash: approveHash })
-const hex = (b: Uint8Array) => `0x${Buffer.from(b).toString('hex')}`
 const poolBefore = await balanceOf(POOL_ADDRESS)
 const depositHash = await wallet.writeContract({
   address: POOL_ADDRESS,
@@ -73,16 +72,14 @@ const leaves = leavesFor(logs, denomIndex)
 const t0 = Date.now()
 const proof = await proveWithdraw(
   { keys: recipientKeys, secret: mine.secret, leaves, leafIndex: mine.leafIndex, recipient: destination, relayer: info.relayer, fee },
-  { wasm: 'public/zk/withdraw.wasm', zkey: 'public/zk/withdraw_final.zkey' },
+  { wasm: 'public/zk/withdraw.wasm', zkey: 'build/zk/withdraw_plonk.zkey' }, // from scripts/zk-setup-plonk.sh
 )
 console.log('proof generated in', Date.now() - t0, 'ms')
 
 const before = { dest: await balanceOf(destination), relayer: await balanceOf(info.relayer) }
 const body = {
   denomIndex,
-  a: proof.a.map(String),
-  b: proof.b.map((r) => r.map(String)),
-  c: proof.c.map(String),
+  proof: proof.proof.map(String),
   root: proof.root,
   nullifierHash: proof.nullifierHash,
   recipient: destination,

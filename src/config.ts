@@ -5,22 +5,22 @@
 
 import { http, createConfig } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
-import { arcTestnet } from 'viem/chains'
+import { APP_CHAIN } from './lib/chain'
 import { injected } from 'wagmi/connectors'
 import { registerChain } from './tracing'
 
 // Pre-register chain RPC URLs so trace events show correct chain names immediately
-registerChain(arcTestnet.id, arcTestnet.rpcUrls.default.http[0])
+registerChain(APP_CHAIN.id, APP_CHAIN.rpcUrls.default.http[0])
 
 // Reach the RPC same-origin, so browser shields cannot block it: the Vite proxy serves /rpc in
 // development and server/relayer.ts serves it in production.
 const arcRpcUrl = `${window.location.origin}/rpc`
 
 export const config = createConfig({
-  chains: [arcTestnet, mainnet], // mainnet needed for ENS resolution
+  chains: [APP_CHAIN, mainnet], // mainnet needed for ENS resolution
   connectors: [injected()],
   transports: {
-    [arcTestnet.id]: http(arcRpcUrl),
+    [APP_CHAIN.id]: http(arcRpcUrl),
     [mainnet.id]: http(), // ENS resolution uses mainnet
   },
 })

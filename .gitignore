@@ -13,3 +13,4 @@ cache/
 *.log
 .wrangler/
 .dev.vars*
+deployments/local.json
