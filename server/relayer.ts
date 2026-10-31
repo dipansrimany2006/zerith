@@ -16,8 +16,8 @@ import {
   handleRelayMany,
   json,
   proxyRpc,
-  publicRpc,
   relayerInfo,
+  rpcList,
 } from './relay-core'
 
 const PORT = Number(process.env.PORT || process.env.RELAYER_PORT || 3001) // hosts set PORT
@@ -32,14 +32,15 @@ if (!POOL || !KEY) {
   process.exit(1)
 }
 
-// Prefer the sandbox RPC proxy when it covers Arc Testnet (Arc Studio only); otherwise use the public RPC from onchain-facts.
+// Prefer the sandbox RPC proxy when it covers Arc Testnet (Arc Studio only), then RPC_URL if set, then the public RPCs.
 const proxyChains = (process.env.RPC_PROXY_CHAINS || '').split(',')
-const rpcUrl =
+const sandboxRpc =
   CHAIN_ID === 5042002 && process.env.RPC_PROXY_BASE_URL && proxyChains.indexOf('Arc_Testnet') !== -1
     ? `${process.env.RPC_PROXY_BASE_URL}/api/rpc/Arc_Testnet?_rpc_token=${process.env.RPC_PROXY_TOKEN}`
-    : publicRpc(CHAIN_ID)
+    : undefined
+const rpcUrls = rpcList(CHAIN_ID, sandboxRpc ?? process.env.RPC_URL)
 
-const relayer = createRelayer({ key: KEY, pool: POOL, rpcUrl, chainId: CHAIN_ID, minFee: MIN_FEE, extraFee: EXTRA_FEE })
+const relayer = createRelayer({ key: KEY, pool: POOL, rpcUrls, chainId: CHAIN_ID, minFee: MIN_FEE, extraFee: EXTRA_FEE })
 const limited = createRateLimiter()
 
 const DIST = resolve(import.meta.dir, '../dist')
@@ -67,7 +68,7 @@ Bun.serve({
     // The app calls /api/*; the Vite dev proxy strips the prefix, so accept both forms.
     const route = url.pathname.replace(/^\/api(?=\/)/, '')
 
-    if (req.method === 'POST' && url.pathname === '/rpc') return proxyRpc(req, publicRpc(CHAIN_ID))
+    if (req.method === 'POST' && url.pathname === '/rpc') return proxyRpc(req, rpcList(CHAIN_ID, process.env.RPC_URL))
 
     if (req.method === 'GET' && route === '/info') return json(relayerInfo(relayer))
 

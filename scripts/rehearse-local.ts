@@ -30,7 +30,7 @@ const USDC = record.usdc
 const client = createPublicClient({ chain: arcTestnet, transport: http(RPC) })
 const sender = privateKeyToAccount(SENDER_KEY)
 const wallet = createWalletClient({ account: sender, chain: arcTestnet, transport: http(RPC) })
-const relayer = createRelayer({ key: RELAYER_KEY, pool: POOL, rpcUrl: RPC, minFee: MIN_FEE, extraFee: EXTRA_FEE })
+const relayer = createRelayer({ key: RELAYER_KEY, pool: POOL, rpcUrls: [RPC], minFee: MIN_FEE, extraFee: EXTRA_FEE })
 const files: ProvingFiles = {
   wasm: { type: 'mem', data: new Uint8Array(readFileSync('public/zk/withdraw.wasm')) },
   zkey: { type: 'mem', data: new Uint8Array(readFileSync('build/zk/withdraw_plonk.zkey')) },
