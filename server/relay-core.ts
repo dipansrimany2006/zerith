@@ -10,6 +10,7 @@ import {
   createWalletClient,
   decodeErrorResult,
   encodeFunctionData,
+  fallback,
   getAddress,
   http,
   isAddress,
@@ -18,14 +19,13 @@ import {
 import { privateKeyToAccount } from 'viem/accounts'
 import { defineChain } from 'viem'
 import { getChain } from '../src/onchain-facts'
+import { publicRpcs } from '../src/lib/rpc-urls'
 
 export const DEFAULT_CHAIN_ID = 5042002 // Arc Testnet; Arc mainnet is 5042
 
-/** Public RPC for a chain in the onchain facts registry. */
-export function publicRpc(chainId: number): string {
-  const facts = getChain(chainId)
-  if (!facts) throw new Error(`Chain ${chainId} is not in the onchain facts registry`)
-  return facts.rpcUrls[0]
+/** RPCs to use, in order: a private one (RPC_URL, e.g. a paid provider) first if set, then the public ones. */
+export function rpcList(chainId: number, privateUrl?: string): string[] {
+  return privateUrl ? [privateUrl, ...publicRpcs(chainId)] : publicRpcs(chainId)
 }
 
 function chainFor(chainId: number, rpcUrl: string) {
@@ -125,7 +125,8 @@ const hex32 = (v: unknown): `0x${string}` => {
 export interface RelayerOptions {
   key: `0x${string}`
   pool: `0x${string}`
-  rpcUrl: string
+  /** Tried in order; a rate-limited or failing RPC falls through to the next. */
+  rpcUrls: string[]
   chainId?: number
   minFee: bigint
   extraFee?: bigint
@@ -144,11 +145,12 @@ function parseProof(item: Record<string, unknown>) {
   return { denomIndex, proof, root: hex32(item.root), nullifierHash: hex32(item.nullifierHash), fee: big(item.fee) }
 }
 
-export function createRelayer({ key, pool, rpcUrl, chainId = DEFAULT_CHAIN_ID, minFee, extraFee = DEFAULT_EXTRA_NOTE_FEE }: RelayerOptions) {
-  const chain = chainFor(chainId, rpcUrl)
+export function createRelayer({ key, pool, rpcUrls, chainId = DEFAULT_CHAIN_ID, minFee, extraFee = DEFAULT_EXTRA_NOTE_FEE }: RelayerOptions) {
+  const chain = chainFor(chainId, rpcUrls[0])
   const account = privateKeyToAccount(key)
-  const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
-  const walletClient = createWalletClient({ account, chain, transport: http(rpcUrl) })
+  const transport = fallback(rpcUrls.map((url) => http(url, { retryCount: 0 })))
+  const publicClient = createPublicClient({ chain, transport })
+  const walletClient = createWalletClient({ account, chain, transport })
   const enqueue = createQueue()
 
   async function relay(body: Record<string, unknown>): Promise<`0x${string}`> {
@@ -264,14 +266,28 @@ export async function handleRelay(relayer: ReturnType<typeof createRelayer>, req
   }
 }
 
-/** Forwards a JSON-RPC request to the public Arc RPC, so the browser reaches it same-origin. */
-export async function proxyRpc(req: Request, rpcUrl: string): Promise<Response> {
+/** A JSON-RPC answer worth retrying elsewhere: HTTP 429/5xx, or "limit exceeded" (-32005) / rate limit. */
+const isRateLimited = (status: number, body: string) =>
+  status === 429 || status >= 500 || /-32005|rate limit/i.test(body)
+
+/**
+ * Forwards a JSON-RPC request to Arc, so the browser reaches it same-origin. Tries each RPC in turn
+ * and moves on when one is rate-limited, since the public RPCs throttle the Worker's shared IPs.
+ */
+export async function proxyRpc(req: Request, rpcUrls: string[]): Promise<Response> {
   const text = await req.text()
   if (text.length > 100_000) return json({ error: 'Request too large' }, 413)
-  const upstream = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: text,
-  })
-  return new Response(upstream.body, { status: upstream.status, headers: { 'content-type': 'application/json' } })
+  let status = 502
+  let body = JSON.stringify({ error: 'No RPC reachable' })
+  for (const url of rpcUrls) {
+    try {
+      const upstream = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: text })
+      status = upstream.status
+      body = await upstream.text()
+      if (!isRateLimited(status, body)) break
+    } catch {
+      // unreachable: try the next RPC
+    }
+  }
+  return new Response(body, { status, headers: { 'content-type': 'application/json' } })
 }

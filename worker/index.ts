@@ -16,8 +16,8 @@ import {
   handleRelayMany,
   json,
   proxyRpc,
-  publicRpc,
   relayerInfo,
+  rpcList,
 } from '../server/relay-core'
 
 interface Env {
@@ -26,18 +26,21 @@ interface Env {
   POOL_ADDRESS: `0x${string}`
   CHAIN_ID?: string
   RELAYER_PRIVATE_KEY: `0x${string}`
+  /** Optional secret: a private RPC (e.g. a paid provider with an API key), tried before the public ones. */
+  RPC_URL?: string
   RELAYER_MIN_FEE?: string
   RELAYER_EXTRA_NOTE_FEE?: string
 }
 
 /** 5042002 is Arc Testnet (default), 5042 is Arc mainnet. Set CHAIN_ID in wrangler.jsonc. */
 const chainIdOf = (env: Env) => Number(env.CHAIN_ID || DEFAULT_CHAIN_ID)
+const rpcsOf = (env: Env) => rpcList(chainIdOf(env), env.RPC_URL)
 
 export class Relayer extends DurableObject<Env> {
   private relayer = createRelayer({
     key: this.env.RELAYER_PRIVATE_KEY,
     pool: this.env.POOL_ADDRESS,
-    rpcUrl: publicRpc(chainIdOf(this.env)),
+    rpcUrls: rpcsOf(this.env),
     chainId: chainIdOf(this.env),
     minFee: this.env.RELAYER_MIN_FEE ? BigInt(this.env.RELAYER_MIN_FEE) : DEFAULT_MIN_FEE,
     extraFee: this.env.RELAYER_EXTRA_NOTE_FEE ? BigInt(this.env.RELAYER_EXTRA_NOTE_FEE) : DEFAULT_EXTRA_NOTE_FEE,
@@ -64,7 +67,7 @@ export default {
     const { pathname } = new URL(req.url)
 
     if (pathname === '/rpc') {
-      return req.method === 'POST' ? proxyRpc(req, publicRpc(chainIdOf(env))) : json({ error: 'Method not allowed' }, 405)
+      return req.method === 'POST' ? proxyRpc(req, rpcsOf(env)) : json({ error: 'Method not allowed' }, 405)
     }
 
     if (pathname.startsWith('/api/')) {
