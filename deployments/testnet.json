@@ -1,0 +1,35 @@
+{
+  "network": "testnet",
+  "chainId": 5042002,
+  "deployedAt": "2026-10-31T16:11:02.549Z",
+  "deployer": "0x3630858fEDe8859B24f5F9F8236E3961B1b8A97A",
+  "owner": "0x3630858fEDe8859B24f5F9F8236E3961B1b8A97A",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "denominations": [
+    "100000",
+    "1000000",
+    "10000000"
+  ],
+  "proofSystem": "plonk",
+  "contracts": {
+    "PoseidonT3": {
+      "address": "0x0e197e1587aad339c7881432050de1dc2daa5c79",
+      "tx": "0x95a0d8ee0669d826ece86316aedbebf167c654325e9811f5a144d696a95487f0",
+      "block": "70035559"
+    },
+    "PlonkVerifier": {
+      "address": "0x4d7e0da3dfb2852e0e83e1a39515272cacc44838",
+      "tx": "0x532009e2425f74b750c7b7306fd94b087a7d072a3756c0ba18e51ee33a47b8e1",
+      "block": "70035563"
+    },
+    "ShieldedPool": {
+      "address": "0xa592d4392b0784502ce40747ee402744c8300e6b",
+      "tx": "0x1da3a3727abad42fee053ec0d13e6decd446ecbcca69e3b248b2b5a7ed227e97",
+      "block": "70035570"
+    }
+  },
+  "hashes": {
+    "verifierSource": "d783c6cd45820f88609128dc11e774a91a5c79463b6824b3f5de4a0b58626ff8",
+    "zkey": "5488f3d43ecdeead27b737b1f262c3f1830666c3a5ca088d19a1c2be816a9410"
+  }
+}

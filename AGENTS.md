@@ -6,11 +6,16 @@ Zerith (formerly Shielded USDC): private USDC payments on Arc. The chain is set 
 - Deploy: Cloudflare Worker `zerith` (`bun run cf:deploy`, config in wrangler.jsonc), live at https://zerith.dipansrimany.workers.dev on the "Dipansrimany@gmail.com's Account" Cloudflare account. The relayer key is a Worker secret.
 
 ## Deployed contracts (Arc Testnet)
-The testnet pools below use the old Groth16 verifier. The code on main is PLONK (see Architecture), so the app built from it cannot withdraw from them: withdraw their notes with the previous build before pointing `.env` at a PLONK pool.
+Current pool (PLONK, deployed 2026-10-31 with scripts/deploy-pool.ts, record in deployments/testnet.json):
+- ShieldedPool: 0xa592d4392b0784502ce40747ee402744c8300e6b (block 70035570). Note sizes 0.10, 1, 10, the same as the planned first mainnet pool. Owner: deployer wallet 0x3630858fEDe8859B24f5F9F8236E3961B1b8A97A.
+- PlonkVerifier: 0x4d7e0da3dfb2852e0e83e1a39515272cacc44838 (on-chain bytecode matches the local build of contracts/Verifier.sol)
+- PoseidonT3: 0x0e197e1587aad339c7881432050de1dc2daa5c79
+
+Older pools use the Groth16 verifier, so the current app cannot withdraw from them: use a build from before the PLONK switch.
 - ShieldedPool (Groth16, v2): 0x213ec5ddc7aa24100ddfcc96787d4d3556431b18 (deploy tx 0xf954e49e0f403ee626684b60666e378f2a4531f5a003f3bff192bca86e264565, block 69873014). Has `depositMany` (up to 10 notes per transaction).
 - ShieldedPool v1 (legacy, still works for withdrawals): 0xfb73fe8487910611af9039bf0b72eba0a15770b5 (block 69744668). To withdraw notes still sitting there, temporarily point VITE_POOL_ADDRESS / VITE_POOL_DEPLOY_BLOCK (and POOL_ADDRESS in wrangler.jsonc) at it.
-- Groth16Verifier: 0x90176135a31f01bee989a679f9374137a521edc7
-- PoseidonT3 (standalone hasher, called through an interface): 0x621aed2e8b983736795acb5dc87d9cae07d1a0d8
+- Groth16Verifier (old pools): 0x90176135a31f01bee989a679f9374137a521edc7
+- PoseidonT3 (old pools; standalone hasher, called through an interface): 0x621aed2e8b983736795acb5dc87d9cae07d1a0d8
 - Denominations (USDC, 6 decimals): v2 has 0.10, 1, 10, 100, 1000 (v1 had 0.10, 1, 10). They are fixed at deploy time. Owner (can only pause deposits): platform deployer wallet.
 - Pool address and deploy block live in `.env` as VITE_POOL_ADDRESS and VITE_POOL_DEPLOY_BLOCK.
 
