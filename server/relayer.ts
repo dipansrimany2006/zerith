@@ -35,7 +35,7 @@ if (!POOL || !KEY) {
 // Prefer the sandbox RPC proxy when it covers Arc Testnet (Arc Studio only); otherwise use the public RPC from onchain-facts.
 const proxyChains = (process.env.RPC_PROXY_CHAINS || '').split(',')
 const rpcUrl =
-  process.env.RPC_PROXY_BASE_URL && proxyChains.indexOf('Arc_Testnet') !== -1
+  CHAIN_ID === 5042002 && process.env.RPC_PROXY_BASE_URL && proxyChains.indexOf('Arc_Testnet') !== -1
     ? `${process.env.RPC_PROXY_BASE_URL}/api/rpc/Arc_Testnet?_rpc_token=${process.env.RPC_PROXY_TOKEN}`
     : publicRpc(CHAIN_ID)
 

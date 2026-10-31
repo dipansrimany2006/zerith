@@ -68,7 +68,7 @@ export default {
     }
 
     if (pathname.startsWith('/api/')) {
-      if (!env.RELAYER_PRIVATE_KEY) return json({ error: 'Relayer is not configured' }, 503)
+      if (!env.RELAYER_PRIVATE_KEY || !env.POOL_ADDRESS) return json({ error: 'Relayer is not configured' }, 503)
       return env.RELAYER.get(env.RELAYER.idFromName('relayer')).fetch(req)
     }
 
