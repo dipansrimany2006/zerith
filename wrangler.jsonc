@@ -20,6 +20,20 @@
     "CHAIN_ID": "5042002",
     // Public, also baked into the app at build time from VITE_POOL_ADDRESS.
     "POOL_ADDRESS": "0xa592d4392b0784502ce40747ee402744c8300e6b"
-  }
+  },
   // RELAYER_PRIVATE_KEY is a secret: `bunx wrangler secret put RELAYER_PRIVATE_KEY`
+  "env": {
+    // Arc mainnet: a separate Worker, deployed with `bun run cf:deploy:mainnet` (builds with .env.mainnet).
+    // Its relayer key is its own secret: `bunx wrangler secret put RELAYER_PRIVATE_KEY --env mainnet`
+    "mainnet": {
+      "name": "zerith-mainnet",
+      "durable_objects": {
+        "bindings": [{ "name": "RELAYER", "class_name": "Relayer" }]
+      },
+      "vars": {
+        "CHAIN_ID": "5042",
+        "POOL_ADDRESS": "0x322528dcd9f204d381f411c2815f3f4e63440782"
+      }
+    }
+  }
 }

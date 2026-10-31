@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "check": "bash scripts/check.sh",
     "contracts:build": "forge build",
-    "contracts:test": "forge test"
+    "contracts:test": "forge test",
+    "cf:deploy:mainnet": "vite build --mode mainnet && wrangler deploy --env mainnet"
   },
   "dependencies": {
     "@circle-fin/adapter-viem-v2": "^1.19.2",

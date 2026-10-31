@@ -4,10 +4,17 @@ Zerith (formerly Shielded USDC): private USDC payments on Arc. The chain is set 
 - Logo: `assets/zerith.png` (source), `public/zerith.svg` (favicon), `src/components/Logo.tsx` (in-app mark).
 - The strings "Shielded USDC" in `KEY_DERIVATION_MESSAGE` (src/lib/shielded-keys.ts) and the report message (Disclosure.tsx) are protocol strings: never rename them, or existing keys and signed reports break.
 - Deploy: Cloudflare Worker `zerith` (`bun run cf:deploy`, config in wrangler.jsonc), live at https://zerith.dipansrimany.workers.dev on the "Dipansrimany@gmail.com's Account" Cloudflare account. The relayer key is a Worker secret.
+- Mainnet site: Worker `zerith-mainnet`, live at https://zerith-mainnet.dipansrimany.workers.dev since 2026-10-31, relayer wallet 0xBCdf349Ee859259F75381BE5C74c26A45487017c (`bun run cf:deploy:mainnet`: `vite build --mode mainnet` reads `.env.mainnet` (gitignored, VITE_ values only), then `wrangler deploy --env mainnet`, config under `env.mainnet` in wrangler.jsonc). vite.config.ts refuses a mainnet build without chain 5042 and a pool. Its relayer key is a separate secret (`--env mainnet`) from a gas-only wallet, never the pool owner's.
+
+## Deployed contracts (Arc mainnet, chain 5042)
+Deployed 2026-10-31 with scripts/deploy-pool.ts, record in deployments/mainnet.json. Same PLONK verifier bytecode as the tested testnet pool.
+- ShieldedPool: 0x322528dcd9f204d381f411c2815f3f4e63440782 (block 28848189). Note sizes 0.10, 1, 10. Owner (can only pause deposits): 0x9205b914F976A1d73e6Db97a770261CcE2DE69A3.
+- PlonkVerifier: 0x4d64b0fbfe88013da5d686341870047f2f189329
+- PoseidonT3: 0x7d72edc8b42896677b3ccd2a5b6c389336e502f3
 
 ## Deployed contracts (Arc Testnet)
 Current pool (PLONK, deployed 2026-10-31 with scripts/deploy-pool.ts, record in deployments/testnet.json):
-- ShieldedPool: 0xa592d4392b0784502ce40747ee402744c8300e6b (block 70035570). Note sizes 0.10, 1, 10, the same as the planned first mainnet pool. Owner: deployer wallet 0x3630858fEDe8859B24f5F9F8236E3961B1b8A97A.
+- ShieldedPool: 0xa592d4392b0784502ce40747ee402744c8300e6b (block 70035570). Note sizes 0.10, 1, 10, the same as the mainnet pool. Tested 2026-10-31: a 3-note depositMany and a 3-note wallet Withdraw all through Multicall3. Owner: deployer wallet 0x3630858fEDe8859B24f5F9F8236E3961B1b8A97A.
 - PlonkVerifier: 0x4d7e0da3dfb2852e0e83e1a39515272cacc44838 (on-chain bytecode matches the local build of contracts/Verifier.sol)
 - PoseidonT3: 0x0e197e1587aad339c7881432050de1dc2daa5c79
 

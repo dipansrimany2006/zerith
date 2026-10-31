@@ -35,7 +35,7 @@ export async function fetchDeposits(
   const head = toBlock ?? (await client.getBlockNumber())
   const out: DepositLog[] = []
   let from = fromBlock
-  let step = 10_000n // Arc Testnet RPC rejects log ranges above 10,000 blocks
+  let step = 10_000n // Arc RPCs (testnet and mainnet) reject log ranges above 10,000 blocks
   while (from <= head) {
     const to = from + step - 1n > head ? head : from + step - 1n
     try {
