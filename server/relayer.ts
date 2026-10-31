@@ -9,19 +9,21 @@ import { join, resolve, sep } from 'node:path'
 import {
   DEFAULT_EXTRA_NOTE_FEE,
   DEFAULT_MIN_FEE,
-  PUBLIC_RPC,
+  DEFAULT_CHAIN_ID,
   createRateLimiter,
   createRelayer,
   handleRelay,
   handleRelayMany,
   json,
   proxyRpc,
+  publicRpc,
   relayerInfo,
 } from './relay-core'
 
 const PORT = Number(process.env.PORT || process.env.RELAYER_PORT || 3001) // hosts set PORT
 const POOL = process.env.VITE_POOL_ADDRESS as `0x${string}` | undefined
 const KEY = process.env.RELAYER_PRIVATE_KEY as `0x${string}` | undefined
+const CHAIN_ID = Number(process.env.VITE_CHAIN_ID || DEFAULT_CHAIN_ID) // 5042002 Arc Testnet, 5042 Arc mainnet
 const MIN_FEE = process.env.RELAYER_MIN_FEE ? BigInt(process.env.RELAYER_MIN_FEE) : DEFAULT_MIN_FEE
 const EXTRA_FEE = process.env.RELAYER_EXTRA_NOTE_FEE ? BigInt(process.env.RELAYER_EXTRA_NOTE_FEE) : DEFAULT_EXTRA_NOTE_FEE
 
@@ -30,14 +32,14 @@ if (!POOL || !KEY) {
   process.exit(1)
 }
 
-// Prefer the sandbox RPC proxy when it covers Arc Testnet; otherwise use the public RPC from onchain-facts.
+// Prefer the sandbox RPC proxy when it covers Arc Testnet (Arc Studio only); otherwise use the public RPC from onchain-facts.
 const proxyChains = (process.env.RPC_PROXY_CHAINS || '').split(',')
 const rpcUrl =
   process.env.RPC_PROXY_BASE_URL && proxyChains.indexOf('Arc_Testnet') !== -1
     ? `${process.env.RPC_PROXY_BASE_URL}/api/rpc/Arc_Testnet?_rpc_token=${process.env.RPC_PROXY_TOKEN}`
-    : PUBLIC_RPC
+    : publicRpc(CHAIN_ID)
 
-const relayer = createRelayer({ key: KEY, pool: POOL, rpcUrl, minFee: MIN_FEE, extraFee: EXTRA_FEE })
+const relayer = createRelayer({ key: KEY, pool: POOL, rpcUrl, chainId: CHAIN_ID, minFee: MIN_FEE, extraFee: EXTRA_FEE })
 const limited = createRateLimiter()
 
 const DIST = resolve(import.meta.dir, '../dist')
@@ -65,7 +67,7 @@ Bun.serve({
     // The app calls /api/*; the Vite dev proxy strips the prefix, so accept both forms.
     const route = url.pathname.replace(/^\/api(?=\/)/, '')
 
-    if (req.method === 'POST' && url.pathname === '/rpc') return proxyRpc(req)
+    if (req.method === 'POST' && url.pathname === '/rpc') return proxyRpc(req, publicRpc(CHAIN_ID))
 
     if (req.method === 'GET' && route === '/info') return json(relayerInfo(relayer))
 

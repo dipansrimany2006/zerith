@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { buildTxExplorerUrl } from '@/onchain-facts'
 import { parseUsdc } from '@/onchain-money'
 import { CHAIN_ID, MAX_BATCH, POOL_ADDRESS, USDC_ADDRESS, poolAbi } from '@/lib/pool'
+import { CHAIN_NAME } from '@/lib/chain'
 import { MAX_MEMO_BYTES, createNote, splitIntoDenominations } from '@/lib/notes'
 import { decodeAddress, shortAddress, toBytes32Hex } from '@/lib/shielded-keys'
 import { useShielded } from '@/lib/shielded-context'
@@ -408,7 +409,7 @@ export function SendPrivate() {
                     <Spinner /> Sending...
                   </>
                 ) : wrongChain ? (
-                  'Switch to Arc Testnet and send'
+                  `Switch to ${CHAIN_NAME} and send`
                 ) : (
                   <>
                     Confirm and send <ArrowRight className="btn-arrow size-4" aria-hidden />

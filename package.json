@@ -10,7 +10,7 @@
     "cf:dev": "vite build && wrangler dev",
     "cf:deploy": "vite build && wrangler deploy",
     "relayer": "bun run ./server/relayer.ts",
-    "zk:setup": "bash ./scripts/zk-setup.sh",
+    "zk:setup": "bash ./scripts/zk-setup-plonk.sh",
     "deploy:self": "bun run ./scripts/self-deploy.ts",
     "compass:deploy": "bun run ./scripts/compass-deploy.ts",
     "fetch:abi": "bun run ./scripts/fetch-abi.ts",

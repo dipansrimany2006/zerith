@@ -1,12 +1,13 @@
 # Project memory
 
-Zerith (formerly Shielded USDC): private USDC payments on Arc Testnet (chain ID 5042002). Built with Arc Studio.
+Zerith (formerly Shielded USDC): private USDC payments on Arc. The chain is set by VITE_CHAIN_ID (5042002 Arc Testnet, the default; 5042 Arc mainnet) in `.env`, and CHAIN_ID in wrangler.jsonc; `src/lib/chain.ts` reads the rest from `src/onchain-facts.ts`. Built with Arc Studio.
 - Logo: `assets/zerith.png` (source), `public/zerith.svg` (favicon), `src/components/Logo.tsx` (in-app mark).
 - The strings "Shielded USDC" in `KEY_DERIVATION_MESSAGE` (src/lib/shielded-keys.ts) and the report message (Disclosure.tsx) are protocol strings: never rename them, or existing keys and signed reports break.
 - Deploy: Cloudflare Worker `zerith` (`bun run cf:deploy`, config in wrangler.jsonc), live at https://zerith.dipansrimany.workers.dev on the "Dipansrimany@gmail.com's Account" Cloudflare account. The relayer key is a Worker secret.
 
 ## Deployed contracts (Arc Testnet)
-- ShieldedPool (current, v2): 0x213ec5ddc7aa24100ddfcc96787d4d3556431b18 (deploy tx 0xf954e49e0f403ee626684b60666e378f2a4531f5a003f3bff192bca86e264565, block 69873014). Has `depositMany` (up to 10 notes per transaction).
+The testnet pools below use the old Groth16 verifier. The code on main is PLONK (see Architecture), so the app built from it cannot withdraw from them: withdraw their notes with the previous build before pointing `.env` at a PLONK pool.
+- ShieldedPool (Groth16, v2): 0x213ec5ddc7aa24100ddfcc96787d4d3556431b18 (deploy tx 0xf954e49e0f403ee626684b60666e378f2a4531f5a003f3bff192bca86e264565, block 69873014). Has `depositMany` (up to 10 notes per transaction).
 - ShieldedPool v1 (legacy, still works for withdrawals): 0xfb73fe8487910611af9039bf0b72eba0a15770b5 (block 69744668). To withdraw notes still sitting there, temporarily point VITE_POOL_ADDRESS / VITE_POOL_DEPLOY_BLOCK (and POOL_ADDRESS in wrangler.jsonc) at it.
 - Groth16Verifier: 0x90176135a31f01bee989a679f9374137a521edc7
 - PoseidonT3 (standalone hasher, called through an interface): 0x621aed2e8b983736795acb5dc87d9cae07d1a0d8
@@ -15,14 +16,18 @@ Zerith (formerly Shielded USDC): private USDC payments on Arc Testnet (chain ID 
 
 ## Architecture
 - Recipient-bound notes: commitment = Poseidon(ownerPub, secret); nullifier = Poseidon(ownerPriv, commitment). The sender cannot spend or detect spending.
-- Circuit `circuits/withdraw.circom` (depth 20). Public signals order: root, nullifierHash, recipient, relayer, fee. Rebuild with `bun run zk:setup` (needs `.tools/circom`; dev-only single-party setup). Re-running it changes the verifier: the pool must then be redeployed.
+- Circuit `circuits/withdraw.circom` (depth 20). Public signals order: root, nullifierHash, recipient, relayer, fee.
+- Proof system: PLONK from the public Hermez Powers of Tau (`powersOfTau28_hez_final_16.ptau`, BLAKE2b pinned in the script). No ceremony and no secret: `bun run zk:setup -- --check` (scripts/zk-setup-plonk.sh, needs `.tools/circom` 2.2.2) is deterministic and must reproduce zkey sha256 5488f3d43ecdeead27b737b1f262c3f1830666c3a5ca088d19a1c2be816a9410. It writes contracts/Verifier.sol (PlonkVerifier), public/zk/ (wasm, the zkey in two parts because Cloudflare serves files up to 25 MiB), and src/lib/zk-artifacts.ts (pinned hashes the browser checks). Changing the circuit means new keys, a new verifier and a new pool. The proof is `uint256[24]`; verification costs about 271k gas, a withdrawal about 0.40M, a batch about 0.32M per note.
+- Tests: `forge test` (Foundry in ~/.foundry/bin), including contracts/test/PlonkVerifier.t.sol with a real proof. `bash scripts/rehearse-local.sh` runs the whole flow (deploy script, deposits, app prover, relayer single and batch, wallet batch, attacks) on a local anvil chain.
+- Deploy: `DEPLOYER_PRIVATE_KEY=... bun run scripts/deploy-pool.ts --network testnet|mainnet --denoms 0.1,1,10 [--owner 0x..] [--dry-run]`. It checks the chain, USDC and Multicall3, refuses a verifier that rejects the test proof, checks the pool after deploy, and writes deployments/<network>.json plus the .env, wrangler and explorer-verification (Blockscout) commands. The key is only read from the environment, never printed.
 - Client libs in `src/lib/` (keys, notes, scan, merkle, prover). Poseidon in the browser comes from poseidon-lite and matches the on-chain hasher.
-- Relayer: `server/relayer.ts` (`bun run relayer`, port 3001), reached by the app at `/api` through the Vite proxy. Needs RELAYER_PRIVATE_KEY in `.env` and a USDC balance for gas. Minimum fee 0.02 USDC (RELAYER_MIN_FEE overrides).
+- Relayer: `server/relay-core.ts` (shared), served by `server/relayer.ts` locally (`bun run relayer`, port 3001) and by the Worker in production; the app reaches it at `/api`. Needs RELAYER_PRIVATE_KEY in `.env` and a USDC balance for gas. Minimum fee 0.02 USDC (RELAYER_MIN_FEE overrides).
 - snarkjs workers crash under Bun, so the end-to-end script is bundled and run with Node: `E2E_SENDER_KEY=0x... bash scripts/run-e2e.sh`.
 
 ## Decisions
 - Large payments: the Send screen splits an amount into the largest allowed notes and sends them with `depositMany` in batches of 10 (one transaction per batch), up to 50 notes per payment. A 10-note batch costs roughly 8.7M gas; Arc Testnet's block gas limit is 30M.
 - Withdraw all: several notes go out in one atomic transaction per batch of up to 20, through Multicall3 (`0xcA11bde05977b3631167028862bE2a173976CA11`, deployed on Arc Testnet) calling `aggregate3` with `allowFailure: false`. This needs no pool change: `withdraw` never reads `msg.sender`. The relayer route is `POST /relay-many`; its fee per batch is RELAYER_MIN_FEE + RELAYER_EXTRA_NOTE_FEE (default 0.01) for each note after the first, split across the batch's proofs (largest notes first). A withdrawal costs about 0.31-0.35M gas.
-- Testnet only, unaudited, dev trusted setup. Arc native privacy is on the roadmap; the app logic is kept separate so it can be swapped later.
+- Mainnet plan (owner's decisions, 2026-10-31): no audit before launch for now; the owner deploys the pool from their own wallet, which is also the pool owner (no multisig). The dev trusted setup is replaced by Path A (PLONK with a public Powers of Tau); the owner reruns `bun run zk:setup` on a second machine and confirms the zkey hash before mainnet. First mainnet pool: small note sizes only (0.10, 1, 10).
+- Unaudited. Arc native privacy is on the roadmap; the app logic is kept separate so it can be swapped later.
 - Withdrawals are never pausable. Pause only stops deposits.
 - Never print or commit `.env`, the relayer key, or any sender key.

@@ -7,6 +7,7 @@ import { Wallet } from 'lucide-react'
 import { ZerithMark } from '@/components/Logo'
 import { Activity } from '@/components/Activity'
 import { CHAIN_ID, USDC_ADDRESS } from '@/lib/pool'
+import { CHAIN_NAME } from '@/lib/chain'
 import { useShielded, useShieldedBalance } from '@/lib/shielded-context'
 import { usdcNumber } from '@/lib/format'
 import { SPRING, STAGGER } from '@/lib/motion'
@@ -102,7 +103,7 @@ export function Wallets({ show }: { show: boolean }) {
       <div className="mt-8 flex items-end justify-between gap-3">
         <div>
           <p className="text-base font-medium text-ink">USDC</p>
-          <p className="text-[11px] text-ink-2">Arc Testnet</p>
+          <p className="text-[11px] text-ink-2">{CHAIN_NAME}</p>
         </div>
         <div className="text-right">
           <p className="font-display text-2xl text-ink">

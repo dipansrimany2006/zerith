@@ -19,7 +19,7 @@ contract MockVerifier is IVerifier {
         checkSignals = true;
     }
 
-    function verifyProof(uint[2] calldata, uint[2][2] calldata, uint[2] calldata, uint[5] calldata pubSignals)
+    function verifyProof(uint256[24] calldata, uint256[5] calldata pubSignals)
         external
         view
         returns (bool)

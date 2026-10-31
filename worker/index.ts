@@ -9,13 +9,14 @@ import { DurableObject } from 'cloudflare:workers'
 import {
   DEFAULT_EXTRA_NOTE_FEE,
   DEFAULT_MIN_FEE,
-  PUBLIC_RPC,
+  DEFAULT_CHAIN_ID,
   createRateLimiter,
   createRelayer,
   handleRelay,
   handleRelayMany,
   json,
   proxyRpc,
+  publicRpc,
   relayerInfo,
 } from '../server/relay-core'
 
@@ -23,16 +24,21 @@ interface Env {
   ASSETS: Fetcher
   RELAYER: DurableObjectNamespace<Relayer>
   POOL_ADDRESS: `0x${string}`
+  CHAIN_ID?: string
   RELAYER_PRIVATE_KEY: `0x${string}`
   RELAYER_MIN_FEE?: string
   RELAYER_EXTRA_NOTE_FEE?: string
 }
 
+/** 5042002 is Arc Testnet (default), 5042 is Arc mainnet. Set CHAIN_ID in wrangler.jsonc. */
+const chainIdOf = (env: Env) => Number(env.CHAIN_ID || DEFAULT_CHAIN_ID)
+
 export class Relayer extends DurableObject<Env> {
   private relayer = createRelayer({
     key: this.env.RELAYER_PRIVATE_KEY,
     pool: this.env.POOL_ADDRESS,
-    rpcUrl: PUBLIC_RPC,
+    rpcUrl: publicRpc(chainIdOf(this.env)),
+    chainId: chainIdOf(this.env),
     minFee: this.env.RELAYER_MIN_FEE ? BigInt(this.env.RELAYER_MIN_FEE) : DEFAULT_MIN_FEE,
     extraFee: this.env.RELAYER_EXTRA_NOTE_FEE ? BigInt(this.env.RELAYER_EXTRA_NOTE_FEE) : DEFAULT_EXTRA_NOTE_FEE,
   })
@@ -58,7 +64,7 @@ export default {
     const { pathname } = new URL(req.url)
 
     if (pathname === '/rpc') {
-      return req.method === 'POST' ? proxyRpc(req) : json({ error: 'Method not allowed' }, 405)
+      return req.method === 'POST' ? proxyRpc(req, publicRpc(chainIdOf(env))) : json({ error: 'Method not allowed' }, 405)
     }
 
     if (pathname.startsWith('/api/')) {

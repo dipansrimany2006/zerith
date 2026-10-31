@@ -19,6 +19,7 @@ import { useSwitchChain } from 'wagmi'
 import { ArrowDownToLine, ArrowLeftRight, ArrowRight, FileCheck2, Lock, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useTheme } from '@/lib/theme'
 import { CHAIN_ID, POOL_ADDRESS } from '@/lib/pool'
+import { CHAIN_NAME } from '@/lib/chain'
 import { ShieldedProvider, useShielded } from '@/lib/shielded-context'
 import { useChainGuard } from '@/lib/use-chain-guard'
 import { DURATION, SPRING, STAGGER } from '@/lib/motion'
@@ -212,7 +213,7 @@ function Panel({ tab }: { tab: Tab }) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warn bg-[var(--raised)] p-4">
           <p className="text-sm font-semibold text-ink">Your wallet is on another network.</p>
           <button className="btn-ghost" disabled={isPending} onClick={() => switchChain({ chainId: CHAIN_ID })}>
-            Switch to Arc Testnet
+            Switch to {CHAIN_NAME}
           </button>
         </div>
       )}

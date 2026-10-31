@@ -7,6 +7,7 @@ import { useAccount, useSignMessage } from 'wagmi'
 import { Download, Eye, EyeOff, FileCheck2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CHAIN_ID, POOL_ADDRESS } from '@/lib/pool'
+import { CHAIN_NAME } from '@/lib/chain'
 import { toBytes32Hex } from '@/lib/shielded-keys'
 import { useShielded } from '@/lib/shielded-context'
 import { friendlyError, timeAgo, usdcText } from '@/lib/format'
@@ -33,7 +34,7 @@ interface ReportEntry {
 
 interface Report {
   version: 1
-  network: 'Arc Testnet'
+  network: string
   chainId: number
   pool: string
   generatedAt: string
@@ -94,7 +95,7 @@ export function Disclosure() {
       const signature = await signMessageAsync({ message: reportMessage(hash) })
       const report: Report = {
         version: 1,
-        network: 'Arc Testnet',
+        network: CHAIN_NAME,
         chainId: CHAIN_ID,
         pool: POOL_ADDRESS,
         generatedAt: new Date().toISOString(),

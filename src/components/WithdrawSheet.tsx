@@ -5,6 +5,7 @@ import { usePublicClient, useWriteContract } from 'wagmi'
 import { ArrowRight, Check, ExternalLink, X } from 'lucide-react'
 import { buildTxExplorerUrl } from '@/onchain-facts'
 import { CHAIN_ID, MAX_WITHDRAW_BATCH, MULTICALL3, POOL_ADDRESS, multicallAbi, poolAbi } from '@/lib/pool'
+import { CHAIN_NAME } from '@/lib/chain'
 import { leavesFor, type DepositLog } from '@/lib/scan'
 import { proveWithdraw, type WithdrawProof } from '@/lib/prover'
 import { useShielded, type OwnedNote } from '@/lib/shielded-context'
@@ -73,9 +74,7 @@ async function postRelayer(path: string, body: unknown): Promise<`0x${string}`> 
 
 const proofFields = (n: OwnedNote, p: WithdrawProof, fee: bigint) => ({
   denomIndex: n.denomIndex,
-  a: p.a.map(String),
-  b: p.b.map((row) => row.map(String)),
-  c: p.c.map(String),
+  proof: p.proof.map(String),
   root: p.root,
   nullifierHash: p.nullifierHash,
   fee: fee.toString(),
@@ -227,7 +226,7 @@ export function WithdrawSheet({ notes, onClose }: { notes: OwnedNote[]; onClose:
           await ensureChain()
           setStep(many ? `Confirm in your wallet${where}...` : 'Confirm in your wallet...')
           const withdrawArgs = (n: OwnedNote, p: WithdrawProof) =>
-            [n.denomIndex, p.a, p.b, p.c, p.root, p.nullifierHash, recipient, zeroAddress, 0n] as const
+            [n.denomIndex, p.proof, p.root, p.nullifierHash, recipient, zeroAddress, 0n] as const
           hash =
             batch.length === 1
               ? await writeContractAsync({ address: pool, abi: poolAbi, functionName: 'withdraw', args: withdrawArgs(batch[0], proofs[0]), chainId: CHAIN_ID })
@@ -420,7 +419,7 @@ export function WithdrawSheet({ notes, onClose }: { notes: OwnedNote[]; onClose:
                     <Spinner /> {step ?? 'Working...'}
                   </>
                 ) : mode === 'self' && wrongChain ? (
-                  'Switch to Arc Testnet and withdraw'
+                  `Switch to ${CHAIN_NAME} and withdraw`
                 ) : (
                   <>
                     {startLabel} <ArrowRight className="btn-arrow size-4" aria-hidden />

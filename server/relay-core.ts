@@ -16,19 +16,36 @@ import {
   parseAbi,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { arcTestnet } from 'viem/chains'
+import { defineChain } from 'viem'
 import { getChain } from '../src/onchain-facts'
 
-export const PUBLIC_RPC = getChain(arcTestnet.id)?.rpcUrls[0] ?? arcTestnet.rpcUrls.default.http[0]
+export const DEFAULT_CHAIN_ID = 5042002 // Arc Testnet; Arc mainnet is 5042
+
+/** Public RPC for a chain in the onchain facts registry. */
+export function publicRpc(chainId: number): string {
+  const facts = getChain(chainId)
+  if (!facts) throw new Error(`Chain ${chainId} is not in the onchain facts registry`)
+  return facts.rpcUrls[0]
+}
+
+function chainFor(chainId: number, rpcUrl: string) {
+  const facts = getChain(chainId)
+  return defineChain({
+    id: chainId,
+    name: facts?.name ?? `Chain ${chainId}`,
+    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+    rpcUrls: { default: { http: [rpcUrl] } },
+  })
+}
 
 export const DEFAULT_MIN_FEE = 20000n // 0.02 USDC (6 decimals); covers the gas of one withdrawal
 /** Each extra note in a batch adds about 0.33M gas, roughly 0.009 USDC at 25 gwei; 0.01 covers it. */
 export const DEFAULT_EXTRA_NOTE_FEE = 10000n
 
-/** Notes per batch transaction: about 7M gas, well under Arc Testnet's 30M block limit. */
+/** Notes per batch transaction: about 6.5M gas with PLONK (0.32M per note), well under Arc's 30M block limit. */
 export const MAX_BATCH_WITHDRAW = 20
 
-/** Multicall3, deployed at the same address on most EVM chains, including Arc Testnet. */
+/** Multicall3, deployed at the same address on most EVM chains, including Arc. */
 export const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
 
 const multicallAbi = parseAbi([
@@ -43,7 +60,7 @@ export function batchFee(count: number, minFee: bigint, extraFee: bigint): bigin
 }
 
 const abi = parseAbi([
-  'function withdraw(uint8 denomIndex, uint256[2] a, uint256[2][2] b, uint256[2] c, bytes32 root, bytes32 nullifierHash, address recipient, address relayer, uint256 fee)',
+  'function withdraw(uint8 denomIndex, uint256[24] proof, bytes32 root, bytes32 nullifierHash, address recipient, address relayer, uint256 fee)',
   'function getDenominations() view returns (uint256[])',
   'error InvalidProof()',
   'error NullifierAlreadySpent()',
@@ -109,35 +126,37 @@ export interface RelayerOptions {
   key: `0x${string}`
   pool: `0x${string}`
   rpcUrl: string
+  chainId?: number
   minFee: bigint
   extraFee?: bigint
 }
+
+type Tuple<T, N extends number, R extends readonly T[] = readonly []> = R['length'] extends N ? R : Tuple<T, N, readonly [T, ...R]>
+/** PLONK proof: the 24 words the on-chain verifier takes. */
+type ProofWords = Tuple<bigint, 24>
 
 /** Validates one proof's fields from a request body. */
 function parseProof(item: Record<string, unknown>) {
   const denomIndex = Number(item.denomIndex)
   if (!Number.isInteger(denomIndex) || denomIndex < 0 || denomIndex > 7) throw new Error('Invalid denomination')
-  const a = (item.a as unknown[]).map(big) as [bigint, bigint]
-  const b = (item.b as unknown[][]).map((row) => row.map(big)) as [[bigint, bigint], [bigint, bigint]]
-  const c = (item.c as unknown[]).map(big) as [bigint, bigint]
-  if (a.length !== 2 || c.length !== 2 || b.length !== 2 || b[0].length !== 2 || b[1].length !== 2) {
-    throw new Error('Malformed proof')
-  }
-  return { denomIndex, a, b, c, root: hex32(item.root), nullifierHash: hex32(item.nullifierHash), fee: big(item.fee) }
+  if (!Array.isArray(item.proof) || item.proof.length !== 24) throw new Error('Malformed proof')
+  const proof = (item.proof as unknown[]).map(big) as unknown as ProofWords
+  return { denomIndex, proof, root: hex32(item.root), nullifierHash: hex32(item.nullifierHash), fee: big(item.fee) }
 }
 
-export function createRelayer({ key, pool, rpcUrl, minFee, extraFee = DEFAULT_EXTRA_NOTE_FEE }: RelayerOptions) {
+export function createRelayer({ key, pool, rpcUrl, chainId = DEFAULT_CHAIN_ID, minFee, extraFee = DEFAULT_EXTRA_NOTE_FEE }: RelayerOptions) {
+  const chain = chainFor(chainId, rpcUrl)
   const account = privateKeyToAccount(key)
-  const publicClient = createPublicClient({ chain: arcTestnet, transport: http(rpcUrl) })
-  const walletClient = createWalletClient({ account, chain: arcTestnet, transport: http(rpcUrl) })
+  const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
+  const walletClient = createWalletClient({ account, chain, transport: http(rpcUrl) })
   const enqueue = createQueue()
 
   async function relay(body: Record<string, unknown>): Promise<`0x${string}`> {
     if (typeof body.recipient !== 'string' || !isAddress(body.recipient)) throw new Error('Invalid recipient')
     const recipient = getAddress(body.recipient)
-    const { denomIndex, a, b, c, root, nullifierHash, fee } = parseProof(body)
+    const { denomIndex, proof, root, nullifierHash, fee } = parseProof(body)
     if (fee < minFee) throw new Error(`Fee is below the relayer minimum of ${minFee} base units`)
-    const args = [denomIndex, a, b, c, root, nullifierHash, recipient, account.address, fee] as const
+    const args = [denomIndex, proof, root, nullifierHash, recipient, account.address, fee] as const
 
     // Dry run first: an invalid proof, spent note or unknown root is rejected before any gas is spent.
     await publicClient.simulateContract({ address: pool, abi, functionName: 'withdraw', args, account })
@@ -173,7 +192,7 @@ export function createRelayer({ key, pool, rpcUrl, minFee, extraFee = DEFAULT_EX
       callData: encodeFunctionData({
         abi,
         functionName: 'withdraw',
-        args: [i.denomIndex, i.a, i.b, i.c, i.root, i.nullifierHash, recipient, account.address, i.fee],
+        args: [i.denomIndex, i.proof, i.root, i.nullifierHash, recipient, account.address, i.fee],
       }),
     }))
 
@@ -246,10 +265,10 @@ export async function handleRelay(relayer: ReturnType<typeof createRelayer>, req
 }
 
 /** Forwards a JSON-RPC request to the public Arc RPC, so the browser reaches it same-origin. */
-export async function proxyRpc(req: Request): Promise<Response> {
+export async function proxyRpc(req: Request, rpcUrl: string): Promise<Response> {
   const text = await req.text()
   if (text.length > 100_000) return json({ error: 'Request too large' }, 413)
-  const upstream = await fetch(PUBLIC_RPC, {
+  const upstream = await fetch(rpcUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: text,

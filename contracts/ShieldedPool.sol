@@ -8,15 +8,12 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/// @notice Groth16 verifier for the fixed recipient-bound withdrawal circuit.
+/// @notice PLONK verifier for the fixed recipient-bound withdrawal circuit (snarkjs export).
+/// @dev Its keys come from a universal setup over a public Powers of Tau file, with no
+///      circuit-specific ceremony, so nobody holds a secret that could forge proofs.
 interface IVerifier {
     /// @notice Verifies public signals ordered as root, nullifier, recipient, relayer, fee.
-    function verifyProof(
-        uint[2] calldata a,
-        uint[2][2] calldata b,
-        uint[2] calldata c,
-        uint[5] calldata pubSignals
-    ) external view returns (bool);
+    function verifyProof(uint256[24] calldata proof, uint256[5] calldata pubSignals) external view returns (bool);
 }
 
 /// @notice Interface to the separately deployed, circomlib-compatible Poseidon hasher.
@@ -175,9 +172,7 @@ contract ShieldedPool is Ownable2Step, Pausable, ReentrancyGuard {
     /// @notice Redeems a proven note and optionally pays its proof-bound relayer fee, even while paused.
     /// @dev The proof binds the exact root, nullifier, recipient, relayer and fee in that order.
     /// @param denomIndex Denomination tree containing the note.
-    /// @param a Groth16 proof A.
-    /// @param b Groth16 proof B in the verifier's expected coordinate order.
-    /// @param c Groth16 proof C.
+    /// @param proof PLONK proof, as the 24 words snarkjs exports for the Solidity verifier.
     /// @param root A retained root of the selected denomination tree.
     /// @param nullifierHash Globally unique spend nullifier.
     /// @param recipient Nonzero payout address bound by the proof.
@@ -185,9 +180,7 @@ contract ShieldedPool is Ownable2Step, Pausable, ReentrancyGuard {
     /// @param fee Relayer payment in token base units, at most the denomination.
     function withdraw(
         uint8 denomIndex,
-        uint[2] calldata a,
-        uint[2][2] calldata b,
-        uint[2] calldata c,
+        uint256[24] calldata proof,
         bytes32 root,
         bytes32 nullifierHash,
         address payable recipient,
@@ -209,7 +202,7 @@ contract ShieldedPool is Ownable2Step, Pausable, ReentrancyGuard {
         signals[2] = uint256(uint160(address(recipient)));
         signals[3] = uint256(uint160(relayer));
         signals[4] = fee;
-        if (!verifier.verifyProof(a, b, c, signals)) revert InvalidProof();
+        if (!verifier.verifyProof(proof, signals)) revert InvalidProof();
 
         spent[nullifierHash] = true;
         usdc.safeTransfer(recipient, denominations[denomIndex] - fee);

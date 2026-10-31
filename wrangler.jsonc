@@ -16,6 +16,8 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Relayer"] }],
   "vars": {
+    // 5042002 is Arc Testnet, 5042 is Arc mainnet. Must match VITE_CHAIN_ID in the .env the app is built with.
+    "CHAIN_ID": "5042002",
     // Public, also baked into the app at build time from VITE_POOL_ADDRESS.
     "POOL_ADDRESS": "0x213ec5ddc7aa24100ddfcc96787d4d3556431b18"
   }
