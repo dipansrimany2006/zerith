@@ -110,6 +110,19 @@ body {
   box-shadow: var(--shadow-soft);
 }
 
+/* First-visit tour: an ink ring with a soft halo around the highlighted part, the rest of the page dimmed. */
+.tour-ring {
+  box-shadow:
+    0 0 0 2px var(--ink),
+    0 0 26px 2px color-mix(in srgb, var(--ink) 22%, transparent),
+    0 0 0 9999px var(--overlay);
+}
+.tour-card {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-strong), var(--shadow-soft);
+}
+
 .btn-primary {
   display: inline-flex;
   align-items: center;

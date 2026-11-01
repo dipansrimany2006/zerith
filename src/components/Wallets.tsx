@@ -19,6 +19,7 @@ function ConnectPill() {
       {({ isConnected, isConnecting, show, truncatedAddress, ensName }) => (
         <motion.button
           type="button"
+          data-tour="wallet"
           onClick={show}
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.96 }}
@@ -113,7 +114,7 @@ export function Wallets({ show }: { show: boolean }) {
         </div>
       </div>
 
-      <ul className="mt-6">
+      <ul data-tour="balances" className="mt-6">
         <WalletRow
           index={0}
           show={show}
