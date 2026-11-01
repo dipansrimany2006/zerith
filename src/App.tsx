@@ -16,7 +16,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { ConnectKitButton } from 'connectkit'
 import { useSwitchChain } from 'wagmi'
-import { ArrowDownToLine, ArrowLeftRight, ArrowRight, FileCheck2, Lock, Moon, Sun, type LucideIcon } from 'lucide-react'
+import { ArrowDownToLine, ArrowLeftRight, ArrowRight, CircleHelp, FileCheck2, Lock, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useTheme } from '@/lib/theme'
 import { CHAIN_ID, POOL_ADDRESS } from '@/lib/pool'
 import { CHAIN_NAME } from '@/lib/chain'
@@ -30,6 +30,7 @@ import { UnlockCard } from '@/components/UnlockCard'
 import { Wallets } from '@/components/Wallets'
 import { ZerithMark } from '@/components/Logo'
 import { Notice, Stepper } from '@/components/ui'
+import { Tour, tourSeen } from '@/components/Tour'
 
 type Tab = 'send' | 'receive' | 'audit'
 
@@ -43,6 +44,7 @@ const TIMING = {
   wallets: 80, // ms — wallets column
   rows: 200, // ms — wallet rows and pool bars
   panel: 260, // ms — main panel
+  tour: 900, // ms — first-visit tour starts once the page has settled
 }
 
 const WALLETS = { offsetX: -24, spring: SPRING.smooth }
@@ -92,14 +94,14 @@ function ThemeToggle() {
   )
 }
 
-function Rail({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+function Rail({ tab, onChange, onHelp }: { tab: Tab; onChange: (t: Tab) => void; onHelp: () => void }) {
   const { keys, lock } = useShielded()
   return (
     <nav aria-label="Sections" className="rail flex items-center gap-1 rounded-[22px] bg-[var(--rail)] p-2 lg:h-full lg:flex-col lg:gap-2 lg:rounded-[28px] lg:py-6">
       <span className="flex size-12 shrink-0 items-center justify-center text-[color:var(--rail-fg)]" role="img" aria-label="Zerith" title="Zerith">
         <ZerithMark className="size-8" pupil="var(--rail)" />
       </span>
-      <div className="flex flex-1 items-center justify-center gap-1 lg:flex-col lg:gap-3">
+      <div data-tour="nav" className="flex flex-1 items-center justify-center gap-1 lg:flex-col lg:gap-3">
         {NAV.map((item, i) => {
           const active = tab === item.id
           const Icon = item.icon
@@ -126,7 +128,18 @@ function Rail({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
           )
         })}
       </div>
-      <div className="flex items-center gap-1 lg:flex-col lg:gap-2">
+      <div data-tour="controls" className="flex items-center gap-1 lg:flex-col lg:gap-2">
+        <motion.button
+          type="button"
+          onClick={onHelp}
+          aria-label="Take the tour"
+          title="Take the tour"
+          whileTap={{ scale: 0.9 }}
+          transition={SPRING.snappy}
+          className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-muted transition-colors hover:text-[color:var(--rail-fg)]"
+        >
+          <CircleHelp className="size-5" aria-hidden />
+        </motion.button>
         <ThemeToggle />
         {keys ? (
           <motion.button
@@ -235,13 +248,21 @@ function Panel({ tab }: { tab: Tab }) {
 
 function Shell() {
   const [tab, setTab] = useState<Tab>('send')
+  const [touring, setTouring] = useState(false)
   const stage = useEntranceStage()
+
+  // First visit only: start the tour once the entrance animation has settled.
+  useEffect(() => {
+    if (tourSeen()) return
+    const t = setTimeout(() => setTouring(true), TIMING.tour)
+    return () => clearTimeout(t)
+  }, [])
 
   return (
     <div className="min-h-dvh bg-canvas">
       <div className="flex min-h-dvh flex-col gap-4 p-3 sm:p-4 lg:grid lg:grid-cols-[88px_320px_minmax(0,1fr)] lg:gap-10 lg:p-5">
         <div className="sticky top-3 z-20 lg:top-5 lg:h-[calc(100dvh-2.5rem)]">
-          <Rail tab={tab} onChange={setTab} />
+          <Rail tab={tab} onChange={setTab} onHelp={() => setTouring(true)} />
         </div>
 
         <motion.aside
@@ -254,6 +275,7 @@ function Shell() {
         </motion.aside>
 
         <motion.main
+          data-tour="panel"
           className="panel order-2 flex min-h-[560px] flex-col rounded-[28px] p-5 sm:p-7 lg:order-none lg:p-8"
           initial={{ opacity: 0, x: PANEL.offsetX }}
           animate={stage >= 3 ? { opacity: 1, x: 0 } : { opacity: 0, x: PANEL.offsetX }}
@@ -262,6 +284,7 @@ function Shell() {
           <Panel tab={tab} />
         </motion.main>
       </div>
+      <Tour open={touring} onClose={() => setTouring(false)} onTab={setTab} />
     </div>
   )
 }
